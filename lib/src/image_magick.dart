@@ -29,7 +29,7 @@ class ImageMagick {
   /// ImageMagick calls.
   ///
   Future convert(String command, Map options) async {
-    List<String> cmdOptions;
+    List<String?> cmdOptions;
     switch (command) {
       case 'overlay':
         cmdOptions = [
@@ -103,7 +103,7 @@ class ImageMagick {
       '-format',
       '""%[fx:(mean>$threshold)?1:0]""',
       'info:'
-    ])).replaceAll('"', ''); // remove quotes ""0""
+    ]))!.replaceAll('"', ''); // remove quotes ""0""
     return result == '1';
   }
 
@@ -147,12 +147,12 @@ class ImageMagick {
       return [
         ...['magick'],
         ...[imCmd],
-        ...imCmdArgs
+        ...imCmdArgs as Iterable<String>
       ];
     } else {
       return [
         ...[imCmd],
-        ...imCmdArgs
+        ...imCmdArgs as Iterable<String>
       ];
     }
   }

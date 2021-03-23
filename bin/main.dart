@@ -8,7 +8,7 @@ const usage =
 const sampleUsage = 'sample usage: screenshots';
 
 void main(List<String> arguments) async {
-  ArgResults argResults;
+  late ArgResults argResults;
 
   final configArg = 'config';
   final modeArg = 'mode';

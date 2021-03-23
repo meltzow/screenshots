@@ -2,6 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:path/path.dart' show Context;
@@ -48,7 +49,7 @@ const Map<String, String> _osToPathStyle = <String, String>{
 /// could not be found.
 ///
 /// If [platform] is not specified, it will default to the current platform.
-String getExecutablePath(
+String? getExecutablePath(
   String command,
   String workingDirectory, {
   Platform platform = const LocalPlatform(),
@@ -65,19 +66,22 @@ String getExecutablePath(
 
   List<String> extensions = <String>[];
   if (platform.isWindows && context.extension(command).isEmpty) {
-    extensions = platform.environment['PATHEXT'].split(pathSeparator);
+    extensions = platform.environment['PATHEXT']!.split(pathSeparator);
   }
 
   List<String> candidates = <String>[];
   if (command.contains(context.separator)) {
     candidates = _getCandidatePaths(
-        command, <String>[workingDirectory], extensions, context);
+      command,
+      <String>[workingDirectory].toList(),
+      extensions,
+      context,
+    ) as List<String>;
   } else {
-    List<String> searchPath = platform.environment['PATH'].split(pathSeparator);
-    candidates = _getCandidatePaths(command, searchPath, extensions, context);
+    List<String> searchPath = platform.environment['PATH']!.split(pathSeparator);
+    candidates = _getCandidatePaths(command, searchPath, extensions, context) as List<String>;
   }
-  return candidates.firstWhere((String path) => fs.file(path).existsSync(),
-      orElse: () => null);
+  return candidates.firstWhereOrNull((String path) => fs.file(path).existsSync());
 }
 
 /// Returns all possible combinations of `$searchPath\$command.$ext` for

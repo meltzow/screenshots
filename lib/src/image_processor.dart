@@ -21,10 +21,10 @@ class ImageProcessor {
   static const _kCrop =
       '1000x40+0+0'; // default sample size and location to test for brightness
 
-  final Screens _screens;
-  final Config _config;
+  final Screens? _screens;
+  final Config? _config;
 
-  ImageProcessor(Screens screens, Config config)
+  ImageProcessor(Screens? screens, Config? config)
       : _screens = screens,
         _config = config;
 
@@ -42,24 +42,26 @@ class ImageProcessor {
     DeviceType deviceType,
     String deviceName,
     String locale,
-    Orientation orientation,
-    RunMode runMode,
-    Archive archive,
+    Orientation? orientation,
+    RunMode? runMode,
+    Archive? archive,
   ) async {
-    final Map screenProps = _screens.getScreen(deviceName);
-    final screenshotsDir = '${_config.stagingDir}/$kTestScreenshotsDir';
+    final Map? screenProps = _screens!.getScreen(deviceName);
+    final screenshotsDir = '${_config!.stagingDir}/$kTestScreenshotsDir';
     final screenshotPaths = fs.directory(screenshotsDir).listSync();
     if (screenProps == null) {
       printStatus('Warning: \'$deviceName\' images will not be processed');
     } else {
       // add frame if required
-      if (_config.isFrameRequired(deviceName, orientation)) {
+      if (_config!.isFrameRequired(deviceName, orientation)) {
         final Map screenResources = screenProps['resources'];
-        final status = logger.startProgress('Processing screenshots from test...',
-            timeout: Duration(minutes: 4));
+        final status = logger?.startProgress(
+          'Processing screenshots from test...',
+          timeout: Duration(minutes: 4),
+        );
 
         // unpack images for screen from package to local tmpDir area
-        await resources.unpackImages(screenResources, _config.stagingDir);
+        await resources.unpackImages(screenResources, _config!.stagingDir);
 
         // add status and nav bar and frame for each screenshot
         if (screenshotPaths.isEmpty) {
@@ -68,18 +70,18 @@ class ImageProcessor {
         for (final screenshotPath in screenshotPaths) {
           // add status bar for each screenshot
           await overlay(
-              _config.stagingDir, screenResources, screenshotPath.path);
+              _config!.stagingDir, screenResources, screenshotPath.path);
 
           if (deviceType == DeviceType.android) {
             // add nav bar for each screenshot
             await append(
-                _config.stagingDir, screenResources, screenshotPath.path);
+                _config!.stagingDir, screenResources, screenshotPath.path);
           }
 
-          await frame(_config.stagingDir, screenProps, screenshotPath.path,
+          await frame(_config!.stagingDir!, screenProps, screenshotPath.path,
               deviceType, runMode);
         }
-        status.stop();
+        status?.stop();
       } else {
         printStatus('Warning: framing is not enabled');
       }
@@ -87,24 +89,26 @@ class ImageProcessor {
 
     // move to final destination for upload to stores via fastlane
     if (screenshotPaths.isNotEmpty) {
-      final androidModelType = fastlane.getAndroidModelType(screenProps, deviceName);
-      String dstDir = fastlane.getDirPath(deviceType, locale, androidModelType);
+      final androidModelType =
+          fastlane.getAndroidModelType(screenProps, deviceName);
+      String? dstDir =
+          fastlane.getDirPath(deviceType, locale, androidModelType);
       runMode == RunMode.recording
-          ? dstDir = '${_config.recordingDir}/$dstDir'
+          ? dstDir = '${_config!.recordingDir}/$dstDir'
           : null;
       runMode == RunMode.archive
-          ? dstDir = archive.dstDir(deviceType, locale)
+          ? dstDir = archive!.dstDir(deviceType, locale)
           : null;
       // prefix screenshots with name of device before moving
       // (useful for uploading to apple via fastlane)
       await utils.prefixFilesInDir(screenshotsDir,
-          '$deviceName-${orientation == null?kDefaultOrientation:utils.getStringFromEnum(orientation)}-');
+          '$deviceName-${orientation == null ? kDefaultOrientation : utils.getStringFromEnum(orientation)}-');
 
       printStatus('Moving screenshots to $dstDir');
       utils.moveFiles(screenshotsDir, dstDir);
 
       if (runMode == RunMode.comparison) {
-        final recordingDir = '${_config.recordingDir}/$dstDir';
+        final recordingDir = '${_config!.recordingDir}/$dstDir';
         printStatus(
             'Running comparison with recorded screenshots in $recordingDir ...');
         final failedCompare =
@@ -131,7 +135,7 @@ class ImageProcessor {
 
   @visibleForTesting
   static Future<Map> compareImages(
-      String deviceName, String recordingDir, String comparisonDir) async {
+      String deviceName, String recordingDir, String? comparisonDir) async {
     Map failedCompare = {};
     final recordedImages = fs.directory(recordingDir).listSync();
     fs
@@ -144,8 +148,9 @@ class ImageProcessor {
       final screenshotName = p.basename(screenshot.path);
       final recordedImageEntity = recordedImages.firstWhere(
           (image) => p.basename(image.path) == screenshotName,
-          orElse: () =>
-              throw 'Error: screenshot $screenshotName not found in $recordingDir');
+          orElse: (() =>
+                  throw 'Error: screenshot $screenshotName not found in $recordingDir')
+              as FileSystemEntity Function()?);
 
       if (!im.compare(screenshot.path, recordedImageEntity.path)) {
         failedCompare[screenshotName] = {
@@ -160,7 +165,7 @@ class ImageProcessor {
 
   /// Overlay status bar over screenshot.
   static Future<void> overlay(
-      String tmpDir, Map screenResources, String screenshotPath) async {
+      String? tmpDir, Map screenResources, String screenshotPath) async {
     // if no status bar skip
     // todo: get missing status bars
     if (screenResources['statusbar'] == null) {
@@ -189,7 +194,7 @@ class ImageProcessor {
 
   /// Append android navigation bar to screenshot.
   static Future<void> append(
-      String tmpDir, Map screenResources, String screenshotPath) async {
+      String? tmpDir, Map screenResources, String screenshotPath) async {
     final screenshotNavbarPath = '$tmpDir/${screenResources['navbar']}';
     final options = {
       'screenshotPath': screenshotPath,
@@ -202,7 +207,7 @@ class ImageProcessor {
   ///
   /// Resulting image is scaled to fit dimensions required by stores.
   static Future<void> frame(String tmpDir, Map screen, String screenshotPath,
-      DeviceType deviceType, RunMode runMode) async {
+      DeviceType deviceType, RunMode? runMode) async {
     final Map resources = screen['resources'];
 
     final framePath = tmpDir + '/' + resources['frame'];

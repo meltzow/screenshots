@@ -10,12 +10,12 @@ import 'globals.dart';
 
 /// clear configured fastlane directories.
 Future clearFastlaneDirs(
-    Config config, Screens screens, RunMode runMode) async {
+    Config config, Screens? screens, RunMode? runMode) async {
   if (config.isRunTypeActive(DeviceType.android)) {
     for (ConfigDevice device in config.androidDevices) {
       for (final locale in config.locales) {
         await _clearFastlaneDir(
-            screens, device.name, locale, DeviceType.android, runMode);
+            screens!, device.name, locale, DeviceType.android, runMode);
       }
     }
   }
@@ -23,7 +23,7 @@ Future clearFastlaneDirs(
     for (ConfigDevice device in config.iosDevices) {
       for (final locale in config.locales) {
         await _clearFastlaneDir(
-            screens, device.name, locale, DeviceType.ios, runMode);
+            screens!, device.name, locale, DeviceType.ios, runMode);
       }
     }
   }
@@ -31,9 +31,9 @@ Future clearFastlaneDirs(
 
 /// Clear images destination.
 Future _clearFastlaneDir(Screens screens, String deviceName, String locale,
-    DeviceType deviceType, RunMode runMode) async {
-  final Map screenProps = screens.getScreen(deviceName);
-  String androidModelType = getAndroidModelType(screenProps, deviceName);
+    DeviceType deviceType, RunMode? runMode) async {
+  final Map? screenProps = screens.getScreen(deviceName);
+  String? androidModelType = getAndroidModelType(screenProps, deviceName);
 
   final dirPath = getDirPath(deviceType, locale, androidModelType);
 
@@ -57,12 +57,12 @@ const kFastlaneTenInch = 'tenInch';
 // android/fastlane/metadata/android/en-US/images/tenInchScreenshots
 // android/fastlane/metadata/android/en-US/images/sevenInchScreenshots
 /// Generate fastlane dir path for ios or android.
-String getDirPath(
-    DeviceType deviceType, String locale, String androidModelType) {
+String? getDirPath(
+    DeviceType deviceType, String locale, String? androidModelType) {
   locale = locale.replaceAll('_', '-'); // in case canonicalized
   const androidPrefix = 'android/fastlane/metadata/android';
   const iosPrefix = 'ios/fastlane/screenshots';
-  String dirPath;
+  String? dirPath;
   switch (deviceType) {
     case DeviceType.android:
       dirPath = '$androidPrefix/$locale/images/${androidModelType}Screenshots';
@@ -74,8 +74,8 @@ String getDirPath(
 }
 
 /// Get android model type (phone or tablet screen size).
-String getAndroidModelType(Map screenProps, String deviceName) {
-  String androidDeviceType = kFastlanePhone;
+String? getAndroidModelType(Map? screenProps, String deviceName) {
+  String? androidDeviceType = kFastlanePhone;
   if (screenProps == null) {
     printStatus(
         'Warning: using default value \'$kFastlanePhone\' in \'$deviceName\' fastlane directory.');
@@ -87,7 +87,7 @@ String getAndroidModelType(Map screenProps, String deviceName) {
 
 /// Clears files matching a pattern in a directory.
 /// Creates directory if none exists.
-void deleteMatchingFiles(String dirPath, RegExp pattern) {
+void deleteMatchingFiles(String? dirPath, RegExp pattern) {
   if (fs.directory(dirPath).existsSync()) {
     fs.directory(dirPath).listSync().toList().forEach((e) {
       if (pattern.hasMatch(p.basename(e.path))) {

@@ -7,7 +7,7 @@ class Archive {
 
   final archiveDirPrefix;
 
-  Archive(String archiveDir) : archiveDirPrefix = '$archiveDir/$_timeStamp';
+  Archive(String? archiveDir) : archiveDirPrefix = '$archiveDir/$_timeStamp';
 
   String dstDir(DeviceType deviceType, String locale) =>
       '$archiveDirPrefix/${utils.getStringFromEnum(deviceType)}/$locale';

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:meta/meta.dart';
 import 'package:screenshots/src/utils.dart';
 import 'package:tool_base/tool_base.dart';
@@ -16,15 +17,15 @@ enum EventType { deviceRemoved }
 
 /// Starts and communicates with flutter daemon.
 class DaemonClient {
-  Process _process;
+  late Process _process;
   int _messageId = 0;
   bool _connected = false;
-  Completer _waitForConnection;
-  Completer _waitForResponse;
+  late Completer _waitForConnection;
+  late Completer _waitForResponse;
   Completer _waitForEvent = Completer<String>();
-  List _iosDevices; // contains model of device, used by screenshots
-  StreamSubscription _stdOutListener;
-  StreamSubscription _stdErrListener;
+  late List _iosDevices; // contains model of device, used by screenshots
+  StreamSubscription? _stdOutListener;
+  StreamSubscription? _stdErrListener;
 
   /// Start flutter tools daemon.
   Future<void> get start async {
@@ -32,7 +33,7 @@ class DaemonClient {
       _process = await runCommand(['flutter', 'daemon']);
       _listen();
       _waitForConnection = Completer<bool>();
-      _connected = await _waitForConnection.future;
+      _connected = await (_waitForConnection.future as FutureOr<bool>);
       await enableDeviceDiscovery();
       // maybe should check if iOS run type is active
       if (platform.isMacOS) _iosDevices = getIosDevices();
@@ -50,7 +51,8 @@ class DaemonClient {
   /// List installed emulators (not including iOS simulators).
   Future<List<DaemonEmulator>> get emulators async {
     final List emulators = await _sendCommandWaitResponse(
-        <String, dynamic>{'method': 'emulator.getEmulators'});
+            <String, dynamic>{'method': 'emulator.getEmulators'}) ??
+        [];
     final daemonEmulators = <DaemonEmulator>[];
     for (var emulator in emulators) {
       final daemonEmulator = loadDaemonEmulator(emulator);
@@ -61,14 +63,14 @@ class DaemonClient {
   }
 
   /// Launch an emulator and return device id.
-  Future<String> launchEmulator(String emulatorId) async {
+  Future<String> launchEmulator(String? emulatorId) async {
     final command = <String, dynamic>{
       'method': 'emulator.launch',
       'params': <String, dynamic>{
         'emulatorId': emulatorId,
       },
     };
-    await _sendCommand(command);
+    _sendCommand(command);
 
     // wait for expected device-added-emulator event
     // Note: future does not complete if emulator already running
@@ -90,8 +92,10 @@ class DaemonClient {
 
   /// List running real devices and booted emulators/simulators.
   Future<List<DaemonDevice>> get devices async {
-    final devices = await _sendCommandWaitResponse(
-        <String, dynamic>{'method': 'device.getDevices'});
+    final devices = await (_sendCommandWaitResponse(
+          <String, dynamic>{'method': 'device.getDevices'},
+        )) ??
+        [];
     return Future.value(devices.map((device) {
       // add model name if real ios device present
       if (platform.isMacOS &&
@@ -111,7 +115,8 @@ class DaemonClient {
 
   /// Wait for an event of type [EventType] and return event info.
   Future<Map> waitForEvent(EventType eventType) async {
-    final eventInfo = jsonDecode(await _waitForEvent.future);
+    final eventInfo =
+        jsonDecode(await (_waitForEvent.future as FutureOr<String>));
     switch (eventType) {
       case EventType.deviceRemoved:
         // event info is a device descriptor
@@ -186,18 +191,18 @@ class DaemonClient {
     }
   }
 
-  Future<List> _sendCommandWaitResponse(Map<String, dynamic> command) async {
+  Future<List?> _sendCommandWaitResponse(Map<String, dynamic> command) async {
     _sendCommand(command);
 //    printTrace('waiting for response: $command');
-    final String response = await _waitForResponse.future;
+    final String response = await (_waitForResponse.future as FutureOr<String>);
 //    printTrace('response: $response');
     return _processResponse(response, command);
   }
 
-  List _processResponse(String response, Map<String, dynamic> command) {
+  List? _processResponse(String response, Map<String, dynamic> command) {
     if (response.contains('result')) {
       final respExp = RegExp(r'result":(.*)}\]');
-      return jsonDecode(respExp.firstMatch(response).group(1));
+      return jsonDecode(respExp.firstMatch(response)!.group(1)!);
     } else if (response.contains('error')) {
       // todo: handle errors separately
       throw 'Error: command $command failed:\n ${jsonDecode(response)[0]['error']}';
@@ -212,7 +217,7 @@ List getIosDevices() {
   final regExp = RegExp(r'Found (\w+) \(\w+, (.*), \w+, \w+\)');
   final noAttachedDevices = 'no attached devices';
   final iosDeployDevices =
-      cmd(['sh', '-c', 'ios-deploy -c || echo "$noAttachedDevices"'])
+      cmd(['sh', '-c', 'ios-deploy -c || echo "$noAttachedDevices"'])!
           .trim()
           .split('\n')
           .sublist(1);
@@ -220,7 +225,7 @@ List getIosDevices() {
     return [];
   }
   return iosDeployDevices.map((line) {
-    final matches = regExp.firstMatch(line);
+    final matches = regExp.firstMatch(line)!;
     final device = {};
     device['id'] = matches.group(1);
     device['model'] = matches.group(2);
@@ -230,25 +235,24 @@ List getIosDevices() {
 
 /// Wait for emulator or simulator to start
 Future waitForEmulatorToStart(
-    DaemonClient daemonClient, String deviceId) async {
+    DaemonClient daemonClient, String? deviceId) async {
   bool started = false;
   while (!started) {
     printTrace(
         'waiting for emulator/simulator with device id \'$deviceId\' to start...');
     final devices = await daemonClient.devices;
-    final device = devices.firstWhere(
-        (device) => device.id == deviceId && device.emulator,
-        orElse: () => null);
+    final device = devices.firstWhereOrNull(
+        (device) => device.id == deviceId && device.emulator!);
     started = device != null;
     await Future.delayed(Duration(milliseconds: 1000));
   }
 }
 
 abstract class BaseDevice {
-  final String id;
-  final String name;
-  final String category;
-  final String platformType;
+  final String? id;
+  final String? name;
+  final String? category;
+  final String? platformType;
 
   BaseDevice(this.id, this.name, this.category, this.platformType);
 
@@ -270,25 +274,25 @@ abstract class BaseDevice {
 /// Describe an emulator.
 class DaemonEmulator extends BaseDevice {
   DaemonEmulator(
-    String id,
-    String name,
-    String category,
-    String platformType,
+    String? id,
+    String? name,
+    String? category,
+    String? platformType,
   ) : super(id, name, category, platformType);
 }
 
 /// Describe a device.
 class DaemonDevice extends BaseDevice {
-  final String platform;
-  final bool emulator;
-  final bool ephemeral;
-  final String emulatorId;
-  final String iosModel; //  iOS model
+  final String? platform;
+  final bool? emulator;
+  final bool? ephemeral;
+  final String? emulatorId;
+  final String? iosModel; //  iOS model
   DaemonDevice(
-    String id,
-    String name,
-    String category,
-    String platformType,
+    String? id,
+    String? name,
+    String? category,
+    String? platformType,
     this.platform,
     this.emulator,
     this.ephemeral,
@@ -296,7 +300,7 @@ class DaemonDevice extends BaseDevice {
     this.iosModel,
   }) : super(id, name, category, platformType) {
     // debug check in CI
-    if (emulator && emulatorId == null) throw 'Emulator id is null';
+    if (emulator! && emulatorId == null) throw 'Emulator id is null';
   }
 
   @override

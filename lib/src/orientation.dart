@@ -10,8 +10,8 @@ enum Orientation { Portrait, LandscapeRight, PortraitUpsideDown, LandscapeLeft }
 
 /// Change orientation of a running emulator or simulator.
 /// (No known way of supporting real devices.)
-void changeDeviceOrientation(DeviceType deviceType, Orientation orientation,
-    {String deviceId, String scriptDir}) {
+void changeDeviceOrientation(DeviceType deviceType, Orientation? orientation,
+    {String? deviceId, String? scriptDir}) {
   final androidOrientations = {
     'Portrait': '0',
     'LandscapeRight': '1',

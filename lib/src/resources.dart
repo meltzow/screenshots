@@ -1,17 +1,17 @@
 import 'dart:async';
+
 //import 'dart:io';
 
-import 'package:resource/resource.dart';
+import 'package:resource_portable/resource.dart';
+import 'package:tool_base/tool_base.dart';
 
 import 'utils.dart';
-
-import 'package:tool_base/tool_base.dart';
 
 ///
 /// Copy resource images for a screen from package to files.
 ///
-Future unpackImages(Map screenResources, String dstDir) async {
-  for (String resourcePath in screenResources.values) {
+Future unpackImages(Map screenResources, String? dstDir) async {
+  for (String resourcePath in screenResources.values as Iterable<String>) {
     List<int> resourceImage = await readResourceImage(resourcePath);
 
     // create resource file
@@ -21,7 +21,7 @@ Future unpackImages(Map screenResources, String dstDir) async {
 }
 
 /// Read scripts from resources and install in staging area.
-Future unpackScripts(String dstDir) async {
+Future unpackScripts(String? dstDir) async {
   await unpackScript(
     'resources/script/android-wait-for-emulator',
     dstDir,
@@ -41,7 +41,7 @@ Future unpackScripts(String dstDir) async {
 }
 
 /// Read script from resources and install in staging area.
-Future unpackScript(String srcPath, String dstDir) async {
+Future unpackScript(String srcPath, String? dstDir) async {
   final resource = Resource('package:screenshots/$srcPath');
   final String script = await resource.readAsString();
   final file = await fs.file('$dstDir/$srcPath').create(recursive: true);

@@ -16,7 +16,7 @@ const kEnvConfigPath = 'SCREENSHOTS_YAML';
 // Note: should not have context dependencies as is also used in driver.
 // todo: yaml validation
 class Config {
-  Config({this.configPath = kConfigFileName, String configStr}) {
+  Config({this.configPath = kConfigFileName, String? configStr}) {
     if (configStr != null) {
       // used by tests
       _configInfo = utils.parseYamlStr(configStr);
@@ -44,23 +44,23 @@ class Config {
   // Note: order of boolean tests is important
   bool get isScreenShotsAvailable =>
       io.Platform.environment[kEnvConfigPath] != null ||
-      io.File(configPath).existsSync();
+      io.File(configPath!).existsSync();
 
-  final String configPath;
+  final String? configPath;
 
-  Map _configInfo;
-  Map _screenshotsEnv; // current screenshots env
-  List<ConfigDevice> _devices;
+  Map? _configInfo;
+  Map? _screenshotsEnv; // current screenshots env
+  List<ConfigDevice>? _devices;
 
   // Getters
-  List<String> get tests => _processList(_configInfo['tests']);
+  List<String> get tests => _processList(_configInfo!['tests']);
 
-  String get stagingDir => _configInfo['staging'];
+  String? get stagingDir => _configInfo!['staging'];
 
-  List<String> get locales => _processList(_configInfo['locales']);
+  List<String> get locales => _processList(_configInfo!['locales']);
 
   List<ConfigDevice> get devices => _devices ??=
-      _processDevices(_configInfo['devices'], isFrameEnabled);
+      _processDevices(_configInfo!['devices'], isFrameEnabled);
 
   List<ConfigDevice> get iosDevices =>
       devices.where((device) => device.deviceType == DeviceType.ios).toList();
@@ -69,31 +69,31 @@ class Config {
       .where((device) => device.deviceType == DeviceType.android)
       .toList();
 
-  bool get isFrameEnabled => _configInfo['frame'];
+  bool? get isFrameEnabled => _configInfo!['frame'];
 
-  String get recordingDir => _configInfo['recording'];
+  String? get recordingDir => _configInfo!['recording'];
 
-  String get archiveDir => _configInfo['archive'];
+  String? get archiveDir => _configInfo!['archive'];
 
   /// Get all android and ios device names.
   List<String> get deviceNames => devices.map((device) => device.name).toList();
 
   ConfigDevice getDevice(String deviceName) => devices.firstWhere(
       (device) => device.name == deviceName,
-      orElse: () => throw 'Error: no device configured for \'$deviceName\'');
+      orElse: (() => throw 'Error: no device configured for \'$deviceName\'') as ConfigDevice Function()?);
 
   /// Check for active run type.
   /// Run types can only be one of [DeviceType].
   isRunTypeActive(DeviceType runType) {
     final deviceType = utils.getStringFromEnum(runType);
-    return !(_configInfo['devices'][deviceType] == null ||
-        _configInfo['devices'][deviceType].length == 0);
+    return !(_configInfo!['devices'][deviceType] == null ||
+        _configInfo!['devices'][deviceType].length == 0);
   }
 
   /// Check if frame is required for [deviceName].
-  bool isFrameRequired(String deviceName, Orientation orientation) {
+  bool isFrameRequired(String deviceName, Orientation? orientation) {
     final device = devices.firstWhere((device) => device.name == deviceName,
-        orElse: () => throw 'Error: device \'$deviceName\' not found');
+        orElse: (() => throw 'Error: device \'$deviceName\' not found') as ConfigDevice Function()?);
     // orientation over-rides frame if not in Portait (default)
     if (orientation == null) return device.isFramed;
     return (orientation == Orientation.LandscapeLeft ||
@@ -104,7 +104,7 @@ class Config {
 
   /// Current screenshots runtime environment
   /// (updated before start of each test)
-  Future<Map> get screenshotsEnv async {
+  Future<Map?> get screenshotsEnv async {
     if (isScreenShotsAvailable) {
       if (_screenshotsEnv == null) await _retrieveEnv();
       return _screenshotsEnv;
@@ -116,14 +116,14 @@ class Config {
   }
 
   io.File get _envStore {
-    return io.File(_configInfo['staging'] + '/' + kEnvFileName);
+    return io.File(_configInfo!['staging'] + '/' + kEnvFileName);
   }
 
   /// Records screenshots environment before start of each test
   /// (called by screenshots)
   @visibleForTesting
   Future<void> storeEnv(Screens screens, String emulatorName, String locale,
-      DeviceType deviceType, Orientation orientation) async {
+      DeviceType deviceType, Orientation? orientation) async {
     // store env for later use by tests
     final screenProps = screens.getScreen(emulatorName);
     final screenSize = screenProps == null ? null : screenProps['size'];
@@ -148,12 +148,11 @@ class Config {
   }
 
   List<ConfigDevice> _processDevices(
-      Map<String, dynamic> devices, bool globalFraming) {
-    Orientation _getValidOrientation(String orientation, deviceName) {
+      Map<String, dynamic> devices, bool? globalFraming) {
+    Orientation? _getValidOrientation(String orientation, deviceName) {
       bool _isValidOrientation(String orientation) {
-        return Orientation.values.firstWhere(
-                (o) => utils.getStringFromEnum(o) == orientation,
-                orElse: () => null) !=
+        return Orientation.values.firstWhereOrNull(
+                (o) => utils.getStringFromEnum(o) == orientation) !=
             null;
       }
 
@@ -177,11 +176,11 @@ class Config {
             deviceProps == null ? null : deviceProps['orientation'];
         configDevices.add(ConfigDevice(
           deviceName,
-          utils.getEnumFromString(DeviceType.values, deviceType),
+          utils.getEnumFromString(DeviceType.values, deviceType)!,
           deviceProps == null
-              ? globalFraming
+              ? globalFraming!
               : deviceProps['frame'] ??
-                  globalFraming, // device frame overrides global frame
+                  globalFraming!, // device frame overrides global frame
           deviceProps == null
               ? null
               : orientationVal == null
@@ -207,7 +206,7 @@ class ConfigDevice {
   final String name;
   final DeviceType deviceType;
   final bool isFramed;
-  final List<Orientation> orientations;
+  final List<Orientation?>? orientations;
   final bool isBuild;
 
   ConfigDevice(
