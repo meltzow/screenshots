@@ -57,7 +57,7 @@ String? getExecutablePath(
 }) {
   assert(_osToPathStyle[platform.operatingSystem] == fs.path.style.name);
 
-  workingDirectory ??= fs.currentDirectory.path;
+  workingDirectory = fs.currentDirectory.path;
   Context context = Context(style: fs.path.style, current: workingDirectory);
 
   // TODO(goderbauer): refactor when github.com/google/platform.dart/issues/2
@@ -78,10 +78,13 @@ String? getExecutablePath(
       context,
     ) as List<String>;
   } else {
-    List<String> searchPath = platform.environment['PATH']!.split(pathSeparator);
-    candidates = _getCandidatePaths(command, searchPath, extensions, context) as List<String>;
+    List<String> searchPath =
+        platform.environment['PATH']!.split(pathSeparator);
+    candidates = _getCandidatePaths(command, searchPath, extensions, context)
+        as List<String>;
   }
-  return candidates.firstWhereOrNull((String path) => fs.file(path).existsSync());
+  return candidates
+      .firstWhereOrNull((String path) => fs.file(path).existsSync());
 }
 
 /// Returns all possible combinations of `$searchPath\$command.$ext` for
