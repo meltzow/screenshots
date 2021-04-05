@@ -397,7 +397,13 @@ class Screenshots {
     String deviceId,
   ) async {
     for (final testPath in config!.tests) {
-      final List<String?> command = ['flutter', '-d', deviceId, 'drive'];
+      final List<String?> command = [
+        'flutter',
+        '-d',
+        deviceId,
+        'drive',
+        '--no-sound-null-safety'
+      ];
       bool? _isBuild() => isBuild != null
           ? isBuild
           : config!.getDevice(configDeviceName).isBuild;
