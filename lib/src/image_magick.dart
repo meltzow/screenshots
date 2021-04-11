@@ -103,7 +103,8 @@ class ImageMagick {
       '-format',
       '""%[fx:(mean>$threshold)?1:0]""',
       'info:'
-    ]))!.replaceAll('"', ''); // remove quotes ""0""
+    ]))!
+        .replaceAll('"', ''); // remove quotes ""0""
     return result == '1';
   }
 
@@ -147,12 +148,12 @@ class ImageMagick {
       return [
         ...['magick'],
         ...[imCmd],
-        ...imCmdArgs as Iterable<String>
+        ...imCmdArgs
       ];
     } else {
       return [
         ...[imCmd],
-        ...imCmdArgs as Iterable<String>
+        ...imCmdArgs
       ];
     }
   }
@@ -163,12 +164,14 @@ class ImageMagick {
   }
 }
 
-
 /// Check Image Magick is installed.
 Future<bool> isImageMagicInstalled() async {
   try {
     return await runInContext<bool>(() {
-      return runCmd(platform.isWindows ? ['magick', '-version'] : ['convert', '-version']) == 0;
+      return runCmd(platform.isWindows
+              ? ['magick', '-version']
+              : ['convert', '-version']) ==
+          0;
     });
   } catch (e) {
     return false;

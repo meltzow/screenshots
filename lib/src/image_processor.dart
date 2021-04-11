@@ -78,8 +78,8 @@ class ImageProcessor {
                 _config!.stagingDir, screenResources, screenshotPath.path);
           }
 
-          await frame(_config!.stagingDir!, screenProps, screenshotPath.path,
-              deviceType, runMode);
+          // await frame(_config!.stagingDir!, screenProps, screenshotPath.path,
+          //     deviceType, runMode);
         }
         status?.stop();
       } else {

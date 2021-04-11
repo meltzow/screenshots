@@ -199,191 +199,191 @@ class Screenshots {
     for (final configDeviceName in config!.deviceNames) {
       // look for matching device first.
       // Note: flutter daemon handles devices and running emulators/simulators as devices.
-      final device = findRunningDevice(devices!, emulators, configDeviceName);
+      await runAllTestsOnDevice(configDeviceName);
+    }
+  }
 
-      String? deviceId;
-      DaemonEmulator? emulator;
-      Map? simulator;
-      bool pendingIosLocaleChangeAtStart = false;
-      if (device != null) {
-        deviceId = device.id;
+  Future<void> runAllTestsOnDevice(String configDeviceName) async {
+    final device = findRunningDevice(devices!, emulators, configDeviceName);
+
+    String? deviceId;
+    DaemonEmulator? emulator;
+    Map? simulator;
+    bool pendingIosLocaleChangeAtStart = false;
+    if (device != null) {
+      deviceId = device.id;
+    } else {
+      // if no matching device, look for matching android emulator
+      // and start it
+      emulator = utils.findEmulator(emulators!, configDeviceName);
+      if (emulator != null) {
+        printStatus('Starting $configDeviceName...');
+        deviceId =
+            await startEmulator(daemonClient, emulator.id, config!.stagingDir);
       } else {
-        // if no matching device, look for matching android emulator
+        // if no matching android emulator, look for matching ios simulator
         // and start it
-        emulator = utils.findEmulator(emulators!, configDeviceName);
-        if (emulator != null) {
+        simulator = utils.getHighestIosSimulator(
+            utils.getIosSimulators(), configDeviceName);
+        deviceId = simulator!['udid'];
+        // check if current simulator is pending a locale change
+        if (Intl.canonicalizedLocale(config!.locales[0]) ==
+            Intl.canonicalizedLocale(
+                utils.getIosSimulatorLocale(deviceId) ?? "")) {
           printStatus('Starting $configDeviceName...');
-          deviceId = await startEmulator(
-              daemonClient, emulator.id, config!.stagingDir);
+          await startSimulator(daemonClient, deviceId);
         } else {
-          // if no matching android emulator, look for matching ios simulator
-          // and start it
-          simulator = utils.getHighestIosSimulator(
-              utils.getIosSimulators(), configDeviceName);
-          deviceId = simulator!['udid'];
-          // check if current simulator is pending a locale change
-          if (Intl.canonicalizedLocale(config!.locales[0]) ==
-              Intl.canonicalizedLocale(
-                  utils.getIosSimulatorLocale(deviceId) ?? "")) {
-            printStatus('Starting $configDeviceName...');
-            await startSimulator(daemonClient, deviceId);
-          } else {
-            pendingIosLocaleChangeAtStart = true;
-            printTrace(
-                'Postponing \'$configDeviceName\' startup due to pending locale change');
-          }
+          pendingIosLocaleChangeAtStart = true;
+          printTrace(
+              'Postponing \'$configDeviceName\' startup due to pending locale change');
         }
       }
+    }
 
-      // a device is now found
-      // (and running if not ios simulator pending locale change)
-      deviceId == null
-          ? throw 'Error: device \'$configDeviceName\' not found'
-          : Null;
+    // a device is now found
+    // (and running if not ios simulator pending locale change)
+    deviceId == null
+        ? throw 'Error: device \'$configDeviceName\' not found'
+        : Null;
 
-      // todo: make a backup of GlobalPreferences.plist if changing iOS locale
-      // set locale and run tests
-      final deviceType = getDeviceType(config!, configDeviceName);
-      if (device != null && !device.emulator!) {
-        // device is real
-        final defaultLocale =
-            'en_US'; // todo: need actual locale of real device
-        printStatus('Warning: the locale of a real device cannot be changed.');
-        printStatus('Warning: currently defaulting to locale $defaultLocale.');
-        await runProcessTests(
-          configDeviceName,
-          defaultLocale,
-          null,
-          deviceType,
-          deviceId,
-        );
-      } else {
-        // device is emulated
+    // todo: make a backup of GlobalPreferences.plist if changing iOS locale
+    // set locale and run tests
+    final deviceType = getDeviceType(config!, configDeviceName);
+    if (device != null && !device.emulator!) {
+      // device is real
+      final defaultLocale = 'en_US'; // todo: need actual locale of real device
+      printStatus('Warning: the locale of a real device cannot be changed.');
+      printStatus('Warning: currently defaulting to locale $defaultLocale.');
+      await runProcessTests(
+        configDeviceName,
+        defaultLocale,
+        null,
+        deviceType,
+        deviceId,
+      );
+    } else {
+      // device is emulated
 
-        // Function to check for a running android device or emulator.
-        bool isRunningAndroidDeviceOrEmulator(
-            DaemonDevice? device, DaemonEmulator? emulator) {
-          return (device != null && device.platform != 'ios') ||
-              (device == null && emulator != null);
-        }
+      // Function to check for a running android device or emulator.
+      bool isRunningAndroidDeviceOrEmulator(
+          DaemonDevice? device, DaemonEmulator? emulator) {
+        return (device != null && device.platform != 'ios') ||
+            (device == null && emulator != null);
+      }
 
-        // save original android locale for reverting later if necessary
-        String? origAndroidLocale;
+      // save original android locale for reverting later if necessary
+      String? origAndroidLocale;
+      if (isRunningAndroidDeviceOrEmulator(device, emulator)) {
+        origAndroidLocale = utils.getAndroidDeviceLocale(deviceId);
+      }
+
+      // Function to check for a running ios device or simulator.
+      bool isRunningIosDeviceOrSimulator(DaemonDevice? device) {
+        return (device != null && device.platform == 'ios') ||
+            (device == null && simulator != null);
+      }
+
+      // save original ios locale for reverting later if necessary
+      String? origIosLocale;
+      if (isRunningIosDeviceOrSimulator(device)) {
+        origIosLocale = utils.getIosSimulatorLocale(deviceId);
+      }
+
+      for (final locale in config!.locales) {
+        // set locale if android device or emulator
         if (isRunningAndroidDeviceOrEmulator(device, emulator)) {
-          origAndroidLocale = utils.getAndroidDeviceLocale(deviceId);
+          await setEmulatorLocale(deviceId, locale, configDeviceName);
         }
-
-        // Function to check for a running ios device or simulator.
-        bool isRunningIosDeviceOrSimulator(DaemonDevice? device) {
-          return (device != null && device.platform == 'ios') ||
-              (device == null && simulator != null);
-        }
-
-        // save original ios locale for reverting later if necessary
-        String? origIosLocale;
-        if (isRunningIosDeviceOrSimulator(device)) {
-          origIosLocale = utils.getIosSimulatorLocale(deviceId);
-        }
-
-        for (final locale in config!.locales) {
-          // set locale if android device or emulator
-          if (isRunningAndroidDeviceOrEmulator(device, emulator)) {
-            await setEmulatorLocale(deviceId, locale, configDeviceName);
-          }
-          // set locale if ios simulator
-          if ((device != null &&
-                  device.platform == 'ios' &&
-                  device.emulator!) ||
-              (device == null &&
-                  simulator != null &&
-                  !pendingIosLocaleChangeAtStart)) {
-            // an already running simulator or a started simulator
-            final localeChanged = await setSimulatorLocale(deviceId,
-                configDeviceName, locale, config!.stagingDir, daemonClient);
-            if (localeChanged) {
-              // restart simulator
-              printStatus(
-                  'Restarting \'$configDeviceName\' due to locale change...');
-              await shutdownSimulator(deviceId);
-              await startSimulator(daemonClient, deviceId);
-            }
-          }
-          if (pendingIosLocaleChangeAtStart) {
-            // a non-running simulator
-            await setSimulatorLocale(deviceId, configDeviceName, locale,
-                config!.stagingDir, daemonClient);
-            printStatus('Starting $configDeviceName...');
+        // set locale if ios simulator
+        if ((device != null && device.platform == 'ios' && device.emulator!) ||
+            (device == null &&
+                simulator != null &&
+                !pendingIosLocaleChangeAtStart)) {
+          // an already running simulator or a started simulator
+          final localeChanged = await setSimulatorLocale(deviceId,
+              configDeviceName, locale, config!.stagingDir, daemonClient);
+          if (localeChanged) {
+            // restart simulator
+            printStatus(
+                'Restarting \'$configDeviceName\' due to locale change...');
+            await shutdownSimulator(deviceId);
             await startSimulator(daemonClient, deviceId);
-            pendingIosLocaleChangeAtStart = false;
           }
+        }
+        if (pendingIosLocaleChangeAtStart) {
+          // a non-running simulator
+          await setSimulatorLocale(deviceId, configDeviceName, locale,
+              config!.stagingDir, daemonClient);
+          printStatus('Starting $configDeviceName...');
+          await startSimulator(daemonClient, deviceId);
+          pendingIosLocaleChangeAtStart = false;
+        }
 
-          // Change orientation if required
-          final configDevice = config!.getDevice(configDeviceName);
-          if (configDevice.orientations != null) {
-            for (final orientation in configDevice.orientations!) {
-              final currentDevice =
-                  utils.getDeviceFromId(await daemonClient.devices, deviceId);
-              currentDevice == null
-                  ? throw 'Error: device \'$configDeviceName\' not found in flutter daemon.'
-                  : null;
-              switch (deviceType) {
-                case DeviceType.android:
-                  if (currentDevice.emulator!) {
-                    changeDeviceOrientation(deviceType, orientation,
-                        deviceId: deviceId);
-                  } else {
-                    printStatus(
-                        'Warning: cannot change orientation of a real android device.');
-                  }
-                  break;
-                case DeviceType.ios:
-                  if (currentDevice.emulator!) {
-                    changeDeviceOrientation(deviceType, orientation,
-                        scriptDir: '${config!.stagingDir}/resources/script');
-                  } else {
-                    printStatus(
-                        'Warning: cannot change orientation of a real iOS device.');
-                  }
-                  break;
-              }
-
-              // store env for later use by tests
-              // ignore: invalid_use_of_visible_for_testing_member
-              await config!.storeEnv(
-                  screens!, configDeviceName, locale, deviceType, orientation);
-
-              // run tests and process images
-              await runProcessTests(
-                configDeviceName,
-                locale,
-                orientation,
-                deviceType,
-                deviceId,
-              );
+        // Change orientation if required
+        final configDevice = config!.getDevice(configDeviceName);
+        if (configDevice.orientations != null) {
+          for (final orientation in configDevice.orientations!) {
+            final currentDevice =
+                utils.getDeviceFromId(await daemonClient.devices, deviceId);
+            currentDevice == null
+                ? throw 'Error: device \'$configDeviceName\' not found in flutter daemon.'
+                : null;
+            switch (deviceType) {
+              case DeviceType.android:
+                if (currentDevice.emulator!) {
+                  changeDeviceOrientation(deviceType, orientation,
+                      deviceId: deviceId);
+                } else {
+                  printStatus(
+                      'Warning: cannot change orientation of a real android device.');
+                }
+                break;
+              case DeviceType.ios:
+                if (currentDevice.emulator!) {
+                  changeDeviceOrientation(deviceType, orientation,
+                      scriptDir: '${config!.stagingDir}/resources/script');
+                } else {
+                  printStatus(
+                      'Warning: cannot change orientation of a real iOS device.');
+                }
+                break;
             }
-          } else {
+
+            // store env for later use by tests
+            // ignore: invalid_use_of_visible_for_testing_member
+            await config!.storeEnv(
+                screens!, configDeviceName, locale, deviceType, orientation);
+
+            // run tests and process images
             await runProcessTests(
               configDeviceName,
               locale,
-              null,
+              orientation,
               deviceType,
               deviceId,
             );
           }
+        } else {
+          await runProcessTests(
+            configDeviceName,
+            locale,
+            null,
+            deviceType,
+            deviceId,
+          );
         }
-        // if an emulator was started, revert locale if necessary and shut it down
-        if (emulator != null) {
-          await setEmulatorLocale(
-              deviceId, origAndroidLocale, configDeviceName);
-          await shutdownAndroidEmulator(daemonClient, deviceId);
-        }
-        // if a simulator was started, revert locale if necessary and shut it down
-        if (simulator != null) {
-          // todo restore backup of GlobalPreferences.plist
-          await setSimulatorLocale(deviceId, configDeviceName,
-              origIosLocale ?? "", config!.stagingDir, daemonClient);
-          await shutdownSimulator(deviceId);
-        }
+      }
+      // if an emulator was started, revert locale if necessary and shut it down
+      if (emulator != null) {
+        await setEmulatorLocale(deviceId, origAndroidLocale, configDeviceName);
+        await shutdownAndroidEmulator(daemonClient, deviceId);
+      }
+      // if a simulator was started, revert locale if necessary and shut it down
+      if (simulator != null) {
+        // todo restore backup of GlobalPreferences.plist
+        await setSimulatorLocale(deviceId, configDeviceName,
+            origIosLocale ?? "", config!.stagingDir, daemonClient);
+        await shutdownSimulator(deviceId);
       }
     }
   }

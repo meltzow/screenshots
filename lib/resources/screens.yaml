@@ -58,6 +58,7 @@ ios:
       - iPhone XS Max
       - iPhone Xs Max
       - iPhone 11 Pro Max
+      - iPhone 12 Pro Max
 #  7.9inches:
 #    devices:
 #      - iPad Mini
@@ -102,6 +103,7 @@ ios:
     offset: -3+2
     devices:
       - iPad Pro (12.9-inch) (3rd generation)
+      - iPad Pro (12.9-inch) (4th generation)
 android:
   5.2inch:
     size: 1080x1920
