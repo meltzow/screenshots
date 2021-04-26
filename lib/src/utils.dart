@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert' as cnv;
 import 'dart:convert';
 
-import 'package:collection/collection.dart' show IterableExtension;
+import 'package:collection/collection.dart';
 import 'package:path/path.dart' as p;
 import 'package:process/process.dart';
 import 'package:screenshots/src/daemon_client.dart';
@@ -14,12 +14,10 @@ import 'context_runner.dart';
 import 'globals.dart';
 
 /// Parse a yaml file.
-Map? parseYamlFile(String? yamlPath) =>
-    jsonDecode(jsonEncode(loadYaml(fs.file(yamlPath).readAsStringSync())));
+Map? parseYamlFile(String? yamlPath) => jsonDecode(jsonEncode(loadYaml(fs.file(yamlPath).readAsStringSync())));
 
 /// Parse a yaml string.
-Map? parseYamlStr(String yamlString) =>
-    jsonDecode(jsonEncode(loadYaml(yamlString)));
+Map? parseYamlStr(String yamlString) => jsonDecode(jsonEncode(loadYaml(yamlString)));
 
 /// Move files from [srcDir] to [dstDir].
 /// If dstDir does not exist, it is created.
@@ -55,8 +53,7 @@ Map transformIosSimulators(Map simsInfo) {
   simsInfo.forEach((iOSName, sims) {
     // note: 'isAvailable' field does not appear consistently
     //       so using 'availability' as well
-    isSimAvailable(sim) =>
-        sim['availability'] == '(available)' || sim['isAvailable'] == true;
+    isSimAvailable(sim) => sim['availability'] == '(available)' || sim['isAvailable'] == true;
     for (final sim in sims) {
       // skip if simulator unavailable
       if (!isSimAvailable(sim)) continue;
@@ -129,10 +126,8 @@ String getHighestIosVersion(Map iOSVersions) {
 
 /// Adds prefix to all files in a directory
 Future prefixFilesInDir(String dirPath, String prefix) async {
-  await for (final file
-      in fs.directory(dirPath).list(recursive: false, followLinks: false)) {
-    await file
-        .rename(p.dirname(file.path) + '/' + prefix + p.basename(file.path));
+  await for (final file in fs.directory(dirPath).list(recursive: false, followLinks: false)) {
+    await file.rename(p.dirname(file.path) + '/' + prefix + p.basename(file.path));
   }
 }
 
@@ -140,8 +135,7 @@ Future prefixFilesInDir(String dirPath, String prefix) async {
 String getStringFromEnum(dynamic _enum) => _enum.toString().split('.').last;
 
 /// Converts [String] to [enum].
-T? getEnumFromString<T>(List<T?> values, String? value,
-    {bool allowNull = false}) {
+T? getEnumFromString<T>(List<T?> values, String? value, {bool allowNull = false}) {
   return values.firstWhere((type) => getStringFromEnum(type) == value);
 }
 
@@ -149,24 +143,9 @@ T? getEnumFromString<T>(List<T?> values, String? value,
 String getAndroidDeviceLocale(String deviceId) {
 // ro.product.locale is available on first boot but does not update,
 // persist.sys.locale is empty on first boot but updates with locale changes
-  String locale = cmd([
-    getAdbPath(androidSdk),
-    '-s',
-    deviceId,
-    'shell',
-    'getprop',
-    'persist.sys.locale'
-  ])!
-      .trim();
+  String locale = cmd([getAdbPath(androidSdk), '-s', deviceId, 'shell', 'getprop', 'persist.sys.locale'])!.trim();
   if (locale.isEmpty) {
-    locale = cmd([
-      getAdbPath(androidSdk),
-      '-s',
-      deviceId,
-      'shell',
-      'getprop ro.product.locale'
-    ])!
-        .trim();
+    locale = cmd([getAdbPath(androidSdk), '-s', deviceId, 'shell', 'getprop ro.product.locale'])!.trim();
   }
   return locale;
 }
@@ -242,8 +221,7 @@ String? getIosSimulatorLocale(String? udId) {
     globalPreferences.writeAsStringSync(contents);
     cmd(['plutil', '-convert', 'binary1', globalPreferences.path]);
   }
-  final localeInfo = cnv.jsonDecode(
-      cmd(['plutil', '-convert', 'json', '-o', '-', globalPreferencesPath])!);
+  final localeInfo = cnv.jsonDecode(cmd(['plutil', '-convert', 'json', '-o', '-', globalPreferencesPath])!);
   final locale = localeInfo['AppleLocale'];
   return locale;
 }
@@ -289,40 +267,33 @@ String? getIosSimulatorLocale(String? udId) {
 //}
 
 /// Wait for android device/emulator locale to change.
-Future<String?> waitAndroidLocaleChange(
-    String deviceId, String toLocale) async {
+Future<String?> waitAndroidLocaleChange(String deviceId, String toLocale) async {
   final regExp = RegExp(
       'ContactsProvider: Locale has changed from .* to \\[${toLocale.replaceFirst('-', '_')}\\]|ContactsDatabaseHelper: Switching to locale \\[${toLocale.replaceFirst('-', '_')}\\]');
 //  final regExp = RegExp(
 //      'ContactsProvider: Locale has changed from .* to \\[${toLocale.replaceFirst('-', '_')}\\]');
 //  final regExp = RegExp(
 //      'ContactsProvider: Locale has changed from .* to \\[${toLocale.replaceFirst('-', '_')}\\]|ContactsDatabaseHelper: Locale change completed');
-  final line =
-      await waitSysLogMsg(deviceId, regExp, toLocale.replaceFirst('-', '_'));
+  final line = await waitSysLogMsg(deviceId, regExp, toLocale.replaceFirst('-', '_'));
   return line;
 }
 
 /// Filters a list of devices to get real ios devices. (only used in test??)
 List<DaemonDevice> getIosDaemonDevices(List<DaemonDevice> devices) {
-  final iosDevices = devices
-      .where((device) => device.platform == 'ios' && !device.emulator!)
-      .toList();
+  final iosDevices = devices.where((device) => device.platform == 'ios' && !device.emulator!).toList();
   return iosDevices;
 }
 
 /// Filters a list of devices to get real android devices.
 List<DaemonDevice> getAndroidDevices(List<DaemonDevice> devices) {
-  final iosDevices = devices
-      .where((device) => device.platform != 'ios' && !device.emulator!)
-      .toList();
+  final iosDevices = devices.where((device) => device.platform != 'ios' && !device.emulator!).toList();
   return iosDevices;
 }
 
 /// Get device for deviceName from list of devices.
 DaemonDevice? getDevice(List<DaemonDevice> devices, String deviceName) {
-  return devices.firstWhereOrNull((device) => device.iosModel == null
-      ? device.name == deviceName
-      : device.iosModel!.contains(deviceName));
+  return devices.firstWhereOrNull(
+      (device) => device.iosModel == null ? device.name == deviceName : device.iosModel!.contains(deviceName));
 }
 
 /// Get device for deviceId from list of devices.
@@ -331,8 +302,7 @@ DaemonDevice? getDeviceFromId(List<DaemonDevice> devices, String deviceId) {
 }
 
 /// Wait for message to appear in sys log and return first matching line
-Future<String?> waitSysLogMsg(
-    String deviceId, RegExp regExp, String locale) async {
+Future<String?> waitSysLogMsg(String deviceId, RegExp regExp, String locale) async {
   cmd([getAdbPath(androidSdk), '-s', deviceId, 'logcat', '-c']);
 //  await Future.delayed(Duration(milliseconds: 1000)); // wait for log to clear
   await Future.delayed(Duration(milliseconds: 500)); // wait for log to clear
@@ -354,26 +324,23 @@ Future<String?> waitSysLogMsg(
   return await process.stdout
 //      .transform<String>(cnv.Utf8Decoder(reportErrors: false)) // from flutter tools
       .transform<String>(cnv.Utf8Decoder(allowMalformed: true))
-      .transform<String?>(const cnv.LineSplitter())
+      .transform<String>(const cnv.LineSplitter())
       .firstWhere((line) {
-    printTrace(line!);
+    printTrace(line);
     return regExp.hasMatch(line);
-  }, orElse: () => null);
+  });
 }
 
 /// Find the emulator info of an named emulator available to boot.
-DaemonEmulator? findEmulator(
-    List<DaemonEmulator> emulators, String emulatorName) {
+DaemonEmulator? findEmulator(List<DaemonEmulator> emulators, String emulatorName) {
   // find highest by avd version number
   emulators.sort(emulatorComparison);
   // todo: fix find for example 'Nexus_6_API_28' and Nexus_6P_API_28'
-  return emulators.lastWhereOrNull((emulator) => emulator.id!
-      .toUpperCase()
-      .contains(emulatorName.toUpperCase().replaceAll(' ', '_')));
+  return emulators.lastWhereOrNull(
+      (emulator) => emulator.id!.toUpperCase().contains(emulatorName.toUpperCase().replaceAll(' ', '_')));
 }
 
-int emulatorComparison(DaemonEmulator a, DaemonEmulator b) =>
-    a.id!.compareTo(b.id!);
+int emulatorComparison(DaemonEmulator a, DaemonEmulator b) => a.id!.compareTo(b.id!);
 
 /// Get [RunMode] from [String].
 RunMode? getRunModeEnum(String? runMode) {
@@ -381,8 +348,7 @@ RunMode? getRunModeEnum(String? runMode) {
 }
 
 /// Test for recordings in [recordDir].
-Future<bool> isRecorded(String? recordDir) async =>
-    !(await fs.directory(recordDir).list().isEmpty);
+Future<bool> isRecorded(String? recordDir) async => !(await fs.directory(recordDir).list().isEmpty);
 
 /// Convert a posix path to platform path (windows/posix).
 String toPlatformPath(String posixPath, {p.Context? context}) {
@@ -413,8 +379,9 @@ Future<bool> isEmulatorPath() async {
 
 /// Run command and return stdout as [string].
 String? cmd(List<String?> cmd, {String? workingDirectory, bool silent = true}) {
-  final result = processManager.runSync(cmd.map((s) => s ?? "").toList(),
-      workingDirectory: workingDirectory, runInShell: true);
+  print('Running command: ${cmd.join(" ")}');
+  final result =
+      processManager.runSync(cmd.map((s) => s ?? '').toList(), workingDirectory: workingDirectory, runInShell: true);
   _traceCommand(cmd, workingDirectory: workingDirectory);
   if (!silent) printStatus(result.stdout);
   if (result.exitCode != 0) {
@@ -458,10 +425,8 @@ Future<void> streamCmd(
   Map<String, String>? environment,
 }) async {
   if (mode == ProcessStartMode.normal) {
-    int exitCode = await runCommandAndStreamOutput(
-        cmd.map((c) => c ?? "").toList(),
-        workingDirectory: workingDirectory,
-        environment: environment);
+    int exitCode = await runCommandAndStreamOutput(cmd.map((c) => c ?? "").toList(),
+        workingDirectory: workingDirectory, environment: environment);
     if (exitCode != 0) {
       throw 'command failed: exitcode=$exitCode, cmd=\'${cmd.join(" ")}\', workingDirectory=$workingDirectory, mode=$mode';
     }
