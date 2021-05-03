@@ -107,7 +107,7 @@ class ImageMagick {
       'info:'
     ]))!
         .replaceAll('"', ''); // remove quotes ""0""
-    return result == '1';
+    return result != '1';
   }
 
   bool compare(String comparisonImage, String recordedImage) {
