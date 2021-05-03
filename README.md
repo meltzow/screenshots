@@ -202,6 +202,7 @@ devices:
         - LandscapeRight
   android:
     Nexus 6P:
+      navbar: false # do not show navigation buttons (also disable HW buttons in your emulator)
     SM G965F: # a real attached device (frame and orientation disabled)
 
 # Frame screenshots
@@ -214,6 +215,7 @@ Individual devices can be configured in `screenshots.yaml` by specifying per dev
 | Parameter | Values | Required | Description |
 | --- | --- | --- | --- |
 |frame|true/false|optional|Controls whether screenshots generated on the device should be placed in a frame. Overrides the global frame setting (see example `screenshots.yaml` above).|
+|navbar|true/false|optional|Controls whether screenshots generated on the device should have navigation buttons. Make sure to disable HW buttons for emulator. (Only Android)|
 |orientation|Portrait \| LandscapeRight \| PortraitUpsideDown \| LandscapeLeft|optional|Controls orientation of device during test. Disables framing resulting in a raw screenshot. Ignored for real devices.|
 |build|true(default)/false|optional|Builds and installs app. When set to false, can be used for pre-installed apps that need to be configured before running tests.|
 

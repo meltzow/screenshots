@@ -94,6 +94,17 @@ class Config {
         : device.isFramed;
   }
 
+  /// Check if navbar is required for [deviceName].
+  bool isNavbarRequired(String deviceName, Orientation? orientation) {
+    final device = devices.firstWhere((device) => device.name == deviceName,
+        orElse: (() => throw 'Error: device \'$deviceName\' not found'));
+    // orientation over-rides frame if not in Portait (default)
+    if (orientation == null) return device.hasNavbar;
+    return (orientation == Orientation.LandscapeLeft || orientation == Orientation.LandscapeRight)
+        ? false
+        : device.hasNavbar;
+  }
+
   /// Current screenshots runtime environment
   /// (updated before start of each test)
   Future<Map?> get screenshotsEnv async {
@@ -166,6 +177,7 @@ class Config {
           deviceType: utils.getEnumFromString(DeviceType.values, deviceType)!,
           // device frame overrides global frame
           isFramed: deviceProps == null ? globalFraming! : deviceProps['frame'] ?? globalFraming!,
+          hasNavbar: deviceProps?['navbar'] ?? true,
           orientations: deviceProps == null
               ? null
               : orientationVal == null
@@ -191,6 +203,7 @@ class ConfigDevice {
   final String name;
   final DeviceType deviceType;
   final bool isFramed;
+  final bool hasNavbar;
   final bool isBuild;
   final List<Orientation?>? orientations;
 
@@ -198,6 +211,7 @@ class ConfigDevice {
     required this.name,
     required this.deviceType,
     required this.isFramed,
+    required this.hasNavbar,
     required this.isBuild,
     this.orientations,
   });
@@ -207,6 +221,7 @@ class ConfigDevice {
     return other is ConfigDevice &&
         other.name == name &&
         other.isFramed == isFramed &&
+        other.hasNavbar == hasNavbar &&
         eq(other.orientations, orientations) &&
         other.deviceType == deviceType &&
         other.isBuild == isBuild;
@@ -214,6 +229,6 @@ class ConfigDevice {
 
   @override
   String toString() =>
-      'name: $name, deviceType: ${utils.getStringFromEnum(deviceType)}, isFramed: $isFramed, '
+      'name: $name, deviceType: ${utils.getStringFromEnum(deviceType)}, isFramed: $isFramed, hasNavbar: $hasNavbar, '
       'orientations: $orientations, isBuild: $isBuild';
 }

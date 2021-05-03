@@ -68,11 +68,11 @@ class ImageProcessor {
         }
         for (final screenshotPath in screenshotPaths) {
           // add status bar for each screenshot
-          await overlay(_config.stagingDir, screenResources, screenshotPath.path);
+          await overlayStatusbar(_config.stagingDir, screenResources, screenshotPath.path);
 
-          if (deviceType == DeviceType.android) {
+          if (_config.isNavbarRequired(deviceName, orientation) && deviceType == DeviceType.android) {
             // add nav bar for each screenshot
-            await append(_config.stagingDir, screenResources, screenshotPath.path);
+            await appendNavbar(_config.stagingDir, screenResources, screenshotPath.path);
           }
 
           // await frame(_config!.stagingDir!, screenProps, screenshotPath.path, deviceType, runMode);
@@ -147,7 +147,7 @@ class ImageProcessor {
   }
 
   /// Overlay status bar over screenshot.
-  static Future<void> overlay(String? tmpDir, Map screenResources, String screenshotPath) async {
+  static Future<void> overlayStatusbar(String? tmpDir, Map screenResources, String screenshotPath) async {
     // if no status bar skip
     // todo: get missing status bars
     if (screenResources['statusbar'] == null) {
@@ -174,7 +174,7 @@ class ImageProcessor {
   }
 
   /// Append android navigation bar to screenshot.
-  static Future<void> append(String? tmpDir, Map screenResources, String screenshotPath) async {
+  static Future<void> appendNavbar(String? tmpDir, Map screenResources, String screenshotPath) async {
     final screenshotNavbarPath = '$tmpDir/${screenResources['navbar']}';
     final options = {
       'screenshotPath': screenshotPath,
