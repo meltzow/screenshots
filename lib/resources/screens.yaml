@@ -133,6 +133,21 @@ android:
     destName: phone
     devices:
       - Nexus 6P
+  6.2inch:
+    size: 1440x3200
+    resize: 80%
+    resources:
+      statusbar: resources/android/1440/samsung_statusbar_white.png
+      statusbar black: resources/android/1440/samsung_statusbar_black.png
+      statusbar white: resources/android/1440/samsung_statusbar_white.png
+      navbar: resources/android/1440/samsung_navbar_white.png
+      navbar black: resources/android/1440/samsung_navbar_black.png
+      navbar white: resources/android/1440/samsung_navbar_white.png
+      frame: resources/android/phones/Samsung_Galaxy_S20.png
+    offset: +8+6
+    destName: phone
+    devices:
+      - Samsung Galaxy S20
   8.9inch:
     size: 1536x2048
     resize: 80%
