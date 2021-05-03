@@ -54,7 +54,7 @@ Map getIosSimulators() {
 /// Transforms latest information about iOS simulators into more convenient
 /// format to index into by simulator name.
 /// (also useful for testing)
-Map transformIosSimulators(Map<String, List<Map<String, String>>> simsInfo) {
+Map transformIosSimulators(Map<String, dynamic> simsInfo) {
   // transform json to a Map of device name by a map of iOS versions by a list of
   // devices with a map of properties
   // ie, Map<String, Map<String, List<Map<String, String>>>>
