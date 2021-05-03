@@ -32,16 +32,19 @@ Future _clearFastlaneDir(
   final screenProps = screens.getScreen(deviceName);
   var androidModelType = getAndroidModelType(screenProps, deviceName);
 
-  final dirPath = getDirPath(deviceType, locale, androidModelType);
+  final dirPath = getDirPath(deviceType, locale, androidModelType, framed: true);
+  final unframedDirPath = getDirPath(deviceType, locale, androidModelType, framed: false);
 
-  printStatus('Clearing images in $dirPath for \'$deviceName\'...');
+  printStatus('Clearing images in $dirPath and $unframedDirPath for \'$deviceName\'...');
   // delete images ending with .kImageExtension
   // for compatibility with FrameIt
   // (see https://github.com/mmcc007/screenshots/issues/61)
   deleteMatchingFiles(dirPath, RegExp('$deviceName.*.$kImageExtension'));
+  deleteMatchingFiles(unframedDirPath, RegExp('$deviceName.*.$kImageExtension'));
   if (runMode == RunMode.normal) {
     // delete all diff files (if any)
     deleteMatchingFiles(dirPath, RegExp('.*${ImageMagick.kDiffSuffix}.$kImageExtension'));
+    deleteMatchingFiles(unframedDirPath, RegExp('.*${ImageMagick.kDiffSuffix}.$kImageExtension'));
   }
 }
 
@@ -53,17 +56,17 @@ const kFastlaneTenInch = 'tenInch';
 // android/fastlane/metadata/android/en-US/images/tenInchScreenshots
 // android/fastlane/metadata/android/en-US/images/sevenInchScreenshots
 /// Generate fastlane dir path for ios or android.
-String? getDirPath(DeviceType deviceType, String locale, String? androidModelType) {
+String? getDirPath(DeviceType deviceType, String locale, String? androidModelType, {required bool framed}) {
   locale = locale.replaceAll('_', '-'); // in case canonicalized
   const androidPrefix = 'android/fastlane/metadata/android';
-  const iosPrefix = 'ios/fastlane/screenshots';
+  const iosPrefix = 'ios/fastlane';
   String? dirPath;
   switch (deviceType) {
     case DeviceType.android:
-      dirPath = '$androidPrefix/$locale/images/${androidModelType}Screenshots';
+      dirPath = '$androidPrefix/$locale/${framed ? '' : 'unframed_'}images/${androidModelType}Screenshots';
       break;
     case DeviceType.ios:
-      dirPath = '$iosPrefix/$locale';
+      dirPath = '$iosPrefix/${framed ? '' : 'unframed_'}screenshots/$locale';
   }
   return dirPath;
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert' as cnv;
 import 'dart:convert';
+import 'dart:io' as io;
 
 import 'package:collection/collection.dart';
 import 'package:path/path.dart' as p;
@@ -18,6 +19,17 @@ Map? parseYamlFile(String? yamlPath) => jsonDecode(jsonEncode(loadYaml(fs.file(y
 
 /// Parse a yaml string.
 Map? parseYamlStr(String yamlString) => jsonDecode(jsonEncode(loadYaml(yamlString)));
+
+/// Copy files from [srcDir] to [dstDir].
+/// If dstDir does not exist, it is created.
+void copyFiles(String srcDir, String? dstDir) {
+  if (!fs.directory(dstDir).existsSync()) {
+    fs.directory(dstDir).createSync(recursive: true);
+  }
+  fs.directory(srcDir).listSync().forEach((file) {
+    io.File(file.path).copySync('$dstDir/${p.basename(file.path)}');
+  });
+}
 
 /// Move files from [srcDir] to [dstDir].
 /// If dstDir does not exist, it is created.
@@ -375,7 +387,7 @@ Future<bool> isEmulatorPath() async {
 
 /// Run command and return stdout as [string].
 String? cmd(List<String?> cmd, {String? workingDirectory, bool silent = true}) {
-  print('Running command: ${cmd.join(" ")}');
+  if (!silent) print('Running command: ${cmd.join(" ")}');
   final result =
       processManager.runSync(cmd.map((s) => s ?? '').toList(), workingDirectory: workingDirectory, runInShell: true);
   _traceCommand(cmd, workingDirectory: workingDirectory);

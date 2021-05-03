@@ -47,6 +47,7 @@ class ImageProcessor {
   ) async {
     final screenProps = _screens.getScreen(deviceName);
     final screenshotsDir = '${_config.stagingDir}/$kTestScreenshotsDir';
+    final unframedScreenshotsdir = '${screenshotsDir}_unframed';
     final screenshotPaths = fs.directory(screenshotsDir).listSync();
     if (screenProps == null) {
       printStatus('Warning: \'$deviceName\' images will not be processed');
@@ -62,31 +63,38 @@ class ImageProcessor {
         // unpack images for screen from package to local tmpDir area
         await resources.unpackImages(screenResources, _config.stagingDir);
 
-        // add status and nav bar and frame for each screenshot
+        // add status and nav bar for each screenshot
         if (screenshotPaths.isEmpty) {
           printStatus('Warning: no screenshots found in $screenshotsDir');
         }
         for (final screenshotPath in screenshotPaths) {
           // add status bar for each screenshot
-          await overlayStatusbar(_config.stagingDir, screenResources, screenshotPath.path);
+          await overlayStatusbar(_config.stagingDir!, screenResources, screenshotPath.path);
 
           if (_config.isNavbarRequired(deviceName, orientation) && deviceType == DeviceType.android) {
             // add nav bar for each screenshot
-            await appendNavbar(_config.stagingDir, screenResources, screenshotPath.path);
+            await appendNavbar(_config.stagingDir!, screenResources, screenshotPath.path);
           }
-
-          // await frame(_config!.stagingDir!, screenProps, screenshotPath.path, deviceType, runMode);
         }
+
+        // copy unframed screenshots before framing them
+        utils.copyFiles(screenshotsDir, unframedScreenshotsdir);
+
+        // frame screenshots
+        for (final screenshotPath in screenshotPaths) {
+          await frame(_config.stagingDir!, screenProps, screenshotPath.path, deviceType, runMode);
+        }
+
         status?.stop();
       } else {
         printStatus('Warning: framing is not enabled');
       }
     }
 
-    // move to final destination for upload to stores via fastlane
+    // move screenshots to final destination for upload to stores via fastlane
     if (screenshotPaths.isNotEmpty) {
       final androidModelType = fastlane.getAndroidModelType(screenProps, deviceName);
-      var dstDir = fastlane.getDirPath(deviceType, locale, androidModelType);
+      var dstDir = fastlane.getDirPath(deviceType, locale, androidModelType, framed: true);
       runMode == RunMode.recording ? dstDir = '${_config.recordingDir}/$dstDir' : null;
       runMode == RunMode.archive ? dstDir = archive!.dstDir(deviceType, locale) : null;
       // prefix screenshots with name of device before moving
@@ -94,7 +102,7 @@ class ImageProcessor {
       await utils.prefixFilesInDir(screenshotsDir,
           '$deviceName-${orientation == null ? kDefaultOrientation : utils.getStringFromEnum(orientation)}-');
 
-      printStatus('Moving screenshots to $dstDir');
+      printStatus('Moving framed screenshots to $dstDir');
       utils.moveFiles(screenshotsDir, dstDir);
 
       if (runMode == RunMode.comparison) {
@@ -106,6 +114,14 @@ class ImageProcessor {
           throw 'Error: comparison failed.';
         }
       }
+
+      // move unframed screenshots to final destination
+      dstDir = fastlane.getDirPath(deviceType, locale, androidModelType, framed: false);
+      // prefix screenshots with name of device before moving
+      await utils.prefixFilesInDir(unframedScreenshotsdir,
+          '$deviceName-${orientation == null ? kDefaultOrientation : utils.getStringFromEnum(orientation)}-');
+      printStatus('Moving unframed screenshots to $dstDir');
+      utils.moveFiles(unframedScreenshotsdir, dstDir);
     }
     return true; // for testing
   }
@@ -147,7 +163,7 @@ class ImageProcessor {
   }
 
   /// Overlay status bar over screenshot.
-  static Future<void> overlayStatusbar(String? tmpDir, Map screenResources, String screenshotPath) async {
+  static Future<void> overlayStatusbar(String tmpDir, Map screenResources, String screenshotPath) async {
     // if no status bar skip
     // todo: get missing status bars
     if (screenResources['statusbar'] == null) {
@@ -174,7 +190,7 @@ class ImageProcessor {
   }
 
   /// Append android navigation bar to screenshot.
-  static Future<void> appendNavbar(String? tmpDir, Map screenResources, String screenshotPath) async {
+  static Future<void> appendNavbar(String tmpDir, Map screenResources, String screenshotPath) async {
     final screenshotNavbarPath = '$tmpDir/${screenResources['navbar']}';
     final options = {
       'screenshotPath': screenshotPath,
@@ -183,7 +199,7 @@ class ImageProcessor {
     await im.convert('append', options);
   }
 
-  /// Frame a screenshot with image of device.
+  /// Frame a copy of the screenshot with image of device.
   ///
   /// Resulting image is scaled to fit dimensions required by stores.
   static Future<void> frame(
