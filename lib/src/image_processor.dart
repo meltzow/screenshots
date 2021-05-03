@@ -171,13 +171,13 @@ class ImageProcessor {
       return Future.value(null);
     }
 
-    String statusbarPath;
+    var statusbarPath = '$tmpDir/${screenResources['statusbar']}';
     // select black or white status bar based on brightness of area to be overlaid
     // todo: add black and white status bars
-    if (im.isThresholdExceeded(screenshotPath, _kCrop)) {
+    if (im.isThresholdExceeded(screenshotPath, _kCrop) && screenResources.containsKey('statusbar black')) {
       // use black status bar
       statusbarPath = '$tmpDir/${screenResources['statusbar black']}';
-    } else {
+    } else if (!im.isThresholdExceeded(screenshotPath, _kCrop) && screenResources.containsKey('statusbar white')) {
       // use white status bar
       statusbarPath = '$tmpDir/${screenResources['statusbar white']}';
     }
@@ -191,10 +191,25 @@ class ImageProcessor {
 
   /// Append android navigation bar to screenshot.
   static Future<void> appendNavbar(String tmpDir, Map screenResources, String screenshotPath) async {
-    final screenshotNavbarPath = '$tmpDir/${screenResources['navbar']}';
+    // if no nav bar skip
+    if (screenResources['navbar'] == null) {
+      printStatus('error: image ${p.basename(screenshotPath)} is missing nav bar.');
+      return Future.value(null);
+    }
+
+    var navbarPath = '$tmpDir/${screenResources['navbar']}';
+    // select black or white nav bar based on brightness of area to be overlaid
+    if (im.isThresholdExceeded(screenshotPath, _kCrop) && screenResources.containsKey('navbar black')) {
+      // use black nav bar
+      navbarPath = '$tmpDir/${screenResources['navbar black']}';
+    } else if (!im.isThresholdExceeded(screenshotPath, _kCrop) && screenResources.containsKey('navbar white')) {
+      // use white nav bar
+      navbarPath = '$tmpDir/${screenResources['navbar white']}';
+    }
+
     final options = {
       'screenshotPath': screenshotPath,
-      'screenshotNavbarPath': screenshotNavbarPath,
+      'screenshotNavbarPath': navbarPath,
     };
     await im.convert('append', options);
   }
