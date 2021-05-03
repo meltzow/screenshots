@@ -42,36 +42,32 @@ Map getIosSimulators() {
 /// Transforms latest information about iOS simulators into more convenient
 /// format to index into by simulator name.
 /// (also useful for testing)
-Map transformIosSimulators(Map simsInfo) {
+Map transformIosSimulators(Map<String, List<Map<String, String>>> simsInfo) {
   // transform json to a Map of device name by a map of iOS versions by a list of
   // devices with a map of properties
   // ie, Map<String, Map<String, List<Map<String, String>>>>
   // In other words, just pop-out the device name for 'easier' access to
   // the device properties.
-  Map simsInfoTransformed = {};
+  final simsInfoTransformed = <String, Map<String, List<Object>>>{};
 
   simsInfo.forEach((iOSName, sims) {
     // note: 'isAvailable' field does not appear consistently
     //       so using 'availability' as well
-    isSimAvailable(sim) => sim['availability'] == '(available)' || sim['isAvailable'] == true;
+    bool isSimAvailable(sim) => sim['availability'] == '(available)' || sim['isAvailable'] == true;
     for (final sim in sims) {
       // skip if simulator unavailable
       if (!isSimAvailable(sim)) continue;
 
       // init iOS versions map if not already present
-      if (simsInfoTransformed[sim['name']] == null) {
-        simsInfoTransformed[sim['name']] = {};
-      }
+      simsInfoTransformed.putIfAbsent(sim['name']!, () => {})[sim['name']!];
 
       // init iOS version simulator array if not already present
       // note: there can be multiple versions of a simulator with the same name
       //       for an iOS version, hence the use of an array.
-      if (simsInfoTransformed[sim['name']][iOSName] == null) {
-        simsInfoTransformed[sim['name']][iOSName] = [];
-      }
+      simsInfoTransformed[sim['name']]!.putIfAbsent(iOSName, () => []);
 
       // add simulator to iOS version simulator array
-      simsInfoTransformed[sim['name']][iOSName].add(sim);
+      simsInfoTransformed[sim['name']]![iOSName]!.add(sim);
     }
   });
   return simsInfoTransformed;
@@ -143,7 +139,7 @@ T? getEnumFromString<T>(List<T?> values, String? value, {bool allowNull = false}
 String getAndroidDeviceLocale(String deviceId) {
 // ro.product.locale is available on first boot but does not update,
 // persist.sys.locale is empty on first boot but updates with locale changes
-  String locale = cmd([getAdbPath(androidSdk), '-s', deviceId, 'shell', 'getprop', 'persist.sys.locale'])!.trim();
+  var locale = cmd([getAdbPath(androidSdk), '-s', deviceId, 'shell', 'getprop', 'persist.sys.locale'])!.trim();
   if (locale.isEmpty) {
     locale = cmd([getAdbPath(androidSdk), '-s', deviceId, 'shell', 'getprop ro.product.locale'])!.trim();
   }
@@ -408,7 +404,7 @@ int runCmd(List<String> cmd) {
 
 /// Trace a command.
 void _traceCommand(List<String?> args, {String? workingDirectory}) {
-  final String argsText = args.join(' ');
+  final argsText = args.join(' ');
   if (workingDirectory == null) {
     printTrace('executing: $argsText');
   } else {
@@ -425,7 +421,7 @@ Future<void> streamCmd(
   Map<String, String>? environment,
 }) async {
   if (mode == ProcessStartMode.normal) {
-    int exitCode = await runCommandAndStreamOutput(cmd.map((c) => c ?? "").toList(),
+    var exitCode = await runCommandAndStreamOutput(cmd.map((c) => c ?? '').toList(),
         workingDirectory: workingDirectory, environment: environment);
     if (exitCode != 0) {
       throw 'command failed: exitcode=$exitCode, cmd=\'${cmd.join(" ")}\', workingDirectory=$workingDirectory, mode=$mode';

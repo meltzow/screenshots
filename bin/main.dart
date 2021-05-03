@@ -16,12 +16,9 @@ void main(List<String> arguments) async {
   final buildArg = 'build';
   final helpArg = 'help';
   final verboseArg = 'verbose';
-  final ArgParser argParser = ArgParser(allowTrailingOptions: false)
+  final argParser = ArgParser(allowTrailingOptions: false)
     ..addOption(configArg,
-        abbr: 'c',
-        defaultsTo: kConfigFileName,
-        help: 'Path to config file.',
-        valueHelp: kConfigFileName)
+        abbr: 'c', defaultsTo: kConfigFileName, help: 'Path to config file.', valueHelp: kConfigFileName)
     ..addOption(modeArg,
         abbr: 'm',
         defaultsTo: 'normal',
@@ -29,20 +26,14 @@ void main(List<String> arguments) async {
             'If mode is recording, screenshots will be saved for later comparison. \nIf mode is comparison, screenshots will be compared with recorded.\nIf mode is archive, screenshots will be archived (and cannot be uploaded via fastlane).',
         allowed: ['normal', 'recording', 'comparison', 'archive'],
         valueHelp: 'normal|recording|comparison|archive')
-    ..addOption(flavorArg,
-        abbr: 'f', help: 'Flavor name.', valueHelp: 'flavor name')
+    ..addOption(flavorArg, abbr: 'f', help: 'Flavor name.', valueHelp: 'flavor name')
     ..addOption(buildArg,
         abbr: 'b',
-        help:
-            'Force build and install of app for all devices.\nOverride settings in screenshots.yaml (if any).',
+        help: 'Force build and install of app for all devices.\nOverride settings in screenshots.yaml (if any).',
         allowed: ['true', 'false'],
         valueHelp: 'true|false')
-    ..addFlag(verboseArg,
-        abbr: 'v',
-        help: 'Noisy logging, including all shell commands executed.',
-        negatable: false)
-    ..addFlag(helpArg,
-        abbr: 'h', help: 'Display this help information.', negatable: false);
+    ..addFlag(verboseArg, abbr: 'v', help: 'Noisy logging, including all shell commands executed.', negatable: false)
+    ..addFlag(helpArg, abbr: 'h', help: 'Display this help information.', negatable: false);
   try {
     argResults = argParser.parse(arguments);
   } on ArgParserException catch (e) {
@@ -63,34 +54,29 @@ void main(List<String> arguments) async {
 
   // check imagemagick is installed
   if (!await isImageMagicInstalled()) {
-    stderr.writeln(
-        '#############################################################');
-    stderr.writeln("# You have to install ImageMagick to use Screenshots");
+    stderr.writeln('#############################################################');
+    stderr.writeln('# You have to install ImageMagick to use Screenshots');
     if (Platform.isMacOS) {
-      stderr.writeln(
-          "# Install it using 'brew update && brew install imagemagick'");
+      stderr.writeln("# Install it using 'brew update && brew install imagemagick'");
       stderr.writeln("# If you don't have homebrew: goto http://brew.sh");
     }
-    stderr.writeln(
-        '#############################################################');
+    stderr.writeln('#############################################################');
     exit(1);
   }
 
   // validate args
   if (!await File(argResults[configArg]).exists()) {
-    _handleError(argParser, "File not found: ${argResults[configArg]}");
+    _handleError(argParser, 'File not found: ${argResults[configArg]}');
   }
 
   // Check flutter command is found
   // https://github.com/mmcc007/screenshots/issues/135
   if (getExecutablePath('flutter', '.') == null) {
-    stderr.writeln(
-        '#############################################################');
+    stderr.writeln('#############################################################');
     stderr.writeln("# 'flutter' must be in the PATH to use Screenshots");
-    stderr.writeln("# You can usually add it to the PATH using"
+    stderr.writeln('# You can usually add it to the PATH using'
         "# export PATH='\$HOME/Library/flutter/bin:\$PATH'");
-    stderr.writeln(
-        '#############################################################');
+    stderr.writeln('#############################################################');
     exit(1);
   }
 
@@ -98,23 +84,19 @@ void main(List<String> arguments) async {
   if (config.isRunTypeActive(DeviceType.android)) {
     // check required executables for android
     if (!await isAdbPath()) {
-      stderr.writeln(
-          '#############################################################');
+      stderr.writeln('#############################################################');
       stderr.writeln("# 'adb' must be in the PATH to use Screenshots");
-      stderr.writeln("# You can usually add it to the PATH using"
+      stderr.writeln('# You can usually add it to the PATH using'
           "# export PATH='\$HOME/Library/Android/sdk/platform-tools:\$PATH'");
-      stderr.writeln(
-          '#############################################################');
+      stderr.writeln('#############################################################');
       exit(1);
     }
     if (!await isEmulatorPath()) {
-      stderr.writeln(
-          '#############################################################');
+      stderr.writeln('#############################################################');
       stderr.writeln("# 'emulator' must be in the PATH to use Screenshots");
-      stderr.writeln("# You can usually add it to the PATH using"
+      stderr.writeln('# You can usually add it to the PATH using'
           "# export PATH='\$HOME/Library/Android/sdk/emulator:\$PATH'");
-      stderr.writeln(
-          '#############################################################');
+      stderr.writeln('#############################################################');
       exit(1);
     }
   }
@@ -124,7 +106,9 @@ void main(List<String> arguments) async {
     mode: argResults[modeArg],
     flavor: argResults[flavorArg],
     isBuild: argResults.wasParsed(buildArg)
-        ? argResults[buildArg] == 'true' ? true : false
+        ? argResults[buildArg] == 'true'
+            ? true
+            : false
         : null,
     isVerbose: argResults.wasParsed(verboseArg) ? true : false,
   );

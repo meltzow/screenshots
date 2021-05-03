@@ -1,39 +1,36 @@
 import 'dart:async';
 
+import 'package:path/path.dart' as p;
 import 'package:screenshots/src/image_magick.dart';
 import 'package:tool_base/tool_base.dart' hide Config;
 
 import 'config.dart';
-import 'screens.dart';
-import 'package:path/path.dart' as p;
 import 'globals.dart';
+import 'screens.dart';
 
 /// clear configured fastlane directories.
-Future clearFastlaneDirs(
-    Config config, Screens? screens, RunMode? runMode) async {
+Future clearFastlaneDirs(Config config, Screens? screens, RunMode? runMode) async {
   if (config.isRunTypeActive(DeviceType.android)) {
-    for (ConfigDevice device in config.androidDevices) {
+    for (var device in config.androidDevices) {
       for (final locale in config.locales) {
-        await _clearFastlaneDir(
-            screens!, device.name, locale, DeviceType.android, runMode);
+        await _clearFastlaneDir(screens!, device.name, locale, DeviceType.android, runMode);
       }
     }
   }
   if (config.isRunTypeActive(DeviceType.ios)) {
-    for (ConfigDevice device in config.iosDevices) {
+    for (var device in config.iosDevices) {
       for (final locale in config.locales) {
-        await _clearFastlaneDir(
-            screens!, device.name, locale, DeviceType.ios, runMode);
+        await _clearFastlaneDir(screens!, device.name, locale, DeviceType.ios, runMode);
       }
     }
   }
 }
 
 /// Clear images destination.
-Future _clearFastlaneDir(Screens screens, String deviceName, String locale,
-    DeviceType deviceType, RunMode? runMode) async {
-  final Map? screenProps = screens.getScreen(deviceName);
-  String? androidModelType = getAndroidModelType(screenProps, deviceName);
+Future _clearFastlaneDir(
+    Screens screens, String deviceName, String locale, DeviceType deviceType, RunMode? runMode) async {
+  final screenProps = screens.getScreen(deviceName);
+  var androidModelType = getAndroidModelType(screenProps, deviceName);
 
   final dirPath = getDirPath(deviceType, locale, androidModelType);
 
@@ -44,8 +41,7 @@ Future _clearFastlaneDir(Screens screens, String deviceName, String locale,
   deleteMatchingFiles(dirPath, RegExp('$deviceName.*.$kImageExtension'));
   if (runMode == RunMode.normal) {
     // delete all diff files (if any)
-    deleteMatchingFiles(
-        dirPath, RegExp('.*${ImageMagick.kDiffSuffix}.$kImageExtension'));
+    deleteMatchingFiles(dirPath, RegExp('.*${ImageMagick.kDiffSuffix}.$kImageExtension'));
   }
 }
 
@@ -57,8 +53,7 @@ const kFastlaneTenInch = 'tenInch';
 // android/fastlane/metadata/android/en-US/images/tenInchScreenshots
 // android/fastlane/metadata/android/en-US/images/sevenInchScreenshots
 /// Generate fastlane dir path for ios or android.
-String? getDirPath(
-    DeviceType deviceType, String locale, String? androidModelType) {
+String? getDirPath(DeviceType deviceType, String locale, String? androidModelType) {
   locale = locale.replaceAll('_', '-'); // in case canonicalized
   const androidPrefix = 'android/fastlane/metadata/android';
   const iosPrefix = 'ios/fastlane/screenshots';
@@ -77,8 +72,7 @@ String? getDirPath(
 String? getAndroidModelType(Map? screenProps, String deviceName) {
   String? androidDeviceType = kFastlanePhone;
   if (screenProps == null) {
-    printStatus(
-        'Warning: using default value \'$kFastlanePhone\' in \'$deviceName\' fastlane directory.');
+    printStatus('Warning: using default value \'$kFastlanePhone\' in \'$deviceName\' fastlane directory.');
   } else {
     androidDeviceType = screenProps['destName'];
   }

@@ -16,13 +16,16 @@ ImageMagick get im => context.get<ImageMagick>() ?? _kImageMagick;
 class ImageMagick {
   static const _kThreshold = 0.76;
   static const kDiffSuffix = '-diff';
+
 //const kThreshold = 0.5;
 
   // singleton
   static final ImageMagick _imageMagick = ImageMagick._internal();
+
   factory ImageMagick() {
     return _imageMagick;
   }
+
   ImageMagick._internal();
 
   ///
@@ -90,8 +93,7 @@ class ImageMagick {
   /// Checks if brightness of sample of image exceeds a threshold.
   /// Section is specified by [cropSizeOffset] which is of the form
   /// cropSizeOffset, eg, '1242x42+0+0'.
-  bool isThresholdExceeded(String imagePath, String cropSizeOffset,
-      [double threshold = _kThreshold]) {
+  bool isThresholdExceeded(String imagePath, String cropSizeOffset, [double threshold = _kThreshold]) {
     //convert logo.png -crop $crop_size$offset +repage -colorspace gray -format "%[fx:(mean>$threshold)?1:0]" info:
     final result = cmd(_getPlatformCmd('convert', <String>[
       imagePath,
@@ -111,8 +113,7 @@ class ImageMagick {
   bool compare(String comparisonImage, String recordedImage) {
     final diffImage = getDiffImagePath(comparisonImage);
 
-    int returnCode = _imageMagickCmd('compare',
-        <String>['-metric', 'mae', recordedImage, comparisonImage, diffImage]);
+    var returnCode = _imageMagickCmd('compare', <String>['-metric', 'mae', recordedImage, comparisonImage, diffImage]);
 
     if (returnCode == 0) {
       // delete no-diff diff image created by image magick
@@ -123,11 +124,8 @@ class ImageMagick {
 
   /// Append diff suffix [kDiffSuffix] to [imagePath].
   String getDiffImagePath(String imagePath) {
-    final diffName = p.dirname(imagePath) +
-        '/' +
-        p.basenameWithoutExtension(imagePath) +
-        kDiffSuffix +
-        p.extension(imagePath);
+    final diffName =
+        p.dirname(imagePath) + '/' + p.basenameWithoutExtension(imagePath) + kDiffSuffix + p.extension(imagePath);
     return diffName;
   }
 
@@ -135,8 +133,7 @@ class ImageMagick {
     fs
         .directory(dirPath)
         .listSync()
-        .where((fileSysEntity) =>
-            p.basename(fileSysEntity.path).contains(kDiffSuffix))
+        .where((fileSysEntity) => p.basename(fileSysEntity.path).contains(kDiffSuffix))
         .forEach((diffImage) => fs.file(diffImage.path).deleteSync());
   }
 
@@ -168,10 +165,7 @@ class ImageMagick {
 Future<bool> isImageMagicInstalled() async {
   try {
     return await runInContext<bool>(() {
-      return runCmd(platform.isWindows
-              ? ['magick', '-version']
-              : ['convert', '-version']) ==
-          0;
+      return runCmd(platform.isWindows ? ['magick', '-version'] : ['convert', '-version']) == 0;
     });
   } catch (e) {
     return false;

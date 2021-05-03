@@ -23,7 +23,7 @@ class DaemonClient {
   late Completer _waitForConnection;
   late Completer _waitForResponse;
   Completer<List<dynamic>> _waitForEvent = Completer<List<dynamic>>();
-  Map<String, Completer<List<dynamic>>> _waitForEmulators = {};
+  final Map<String, Completer<List<dynamic>>> _waitForEmulators = {};
   StreamSubscription? _stdOutListener;
   StreamSubscription? _stdErrListener;
 

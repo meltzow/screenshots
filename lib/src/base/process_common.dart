@@ -58,18 +58,18 @@ String? getExecutablePath(
   assert(_osToPathStyle[platform.operatingSystem] == fs.path.style.name);
 
   workingDirectory = fs.currentDirectory.path;
-  Context context = Context(style: fs.path.style, current: workingDirectory);
+  var context = Context(style: fs.path.style, current: workingDirectory);
 
   // TODO(goderbauer): refactor when github.com/google/platform.dart/issues/2
   //     is available.
-  String pathSeparator = platform.isWindows ? ';' : ':';
+  var pathSeparator = platform.isWindows ? ';' : ':';
 
-  List<String> extensions = <String>[];
+  var extensions = <String>[];
   if (platform.isWindows && context.extension(command).isEmpty) {
     extensions = platform.environment['PATHEXT']!.split(pathSeparator);
   }
 
-  List<String> candidates = <String>[];
+  var candidates = <String>[];
   if (command.contains(context.separator)) {
     candidates = _getCandidatePaths(
       command,
@@ -78,13 +78,10 @@ String? getExecutablePath(
       context,
     ) as List<String>;
   } else {
-    List<String> searchPath =
-        platform.environment['PATH']!.split(pathSeparator);
-    candidates = _getCandidatePaths(command, searchPath, extensions, context)
-        as List<String>;
+    var searchPath = platform.environment['PATH']!.split(pathSeparator);
+    candidates = _getCandidatePaths(command, searchPath, extensions, context) as List<String>;
   }
-  return candidates
-      .firstWhereOrNull((String path) => fs.file(path).existsSync());
+  return candidates.firstWhereOrNull((String path) => fs.file(path).existsSync());
 }
 
 /// Returns all possible combinations of `$searchPath\$command.$ext` for
@@ -100,15 +97,13 @@ Iterable<String> _getCandidatePaths(
   List<String> extensions,
   Context context,
 ) {
-  List<String> withExtensions = extensions.isNotEmpty
-      ? extensions.map((String ext) => '$command$ext').toList()
-      : <String>[command];
+  var withExtensions =
+      extensions.isNotEmpty ? extensions.map((String ext) => '$command$ext').toList() : <String>[command];
   if (context.isAbsolute(command)) {
     return withExtensions;
   }
   return searchPaths
-      .map((String path) =>
-          withExtensions.map((String command) => context.join(path, command)))
+      .map((String path) => withExtensions.map((String command) => context.join(path, command)))
       .expand((Iterable<String> e) => e)
       .toList()
       .cast<String>();
