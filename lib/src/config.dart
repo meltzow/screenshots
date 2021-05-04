@@ -177,7 +177,7 @@ class Config {
           deviceType: utils.getEnumFromString(DeviceType.values, deviceType)!,
           // device frame overrides global frame
           isFramed: deviceProps == null ? globalFraming! : deviceProps['frame'] ?? globalFraming!,
-          hasNavbar: deviceProps?['navbar'] ?? true,
+          hasNavbar: deviceProps?['navbar'] ?? false,
           orientations: deviceProps == null
               ? null
               : orientationVal == null
