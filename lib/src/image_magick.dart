@@ -47,7 +47,7 @@ class ImageMagick {
       case 'ios-append':
         cmdOptions = [
           options['screenshotPath'],
-          options['statusbarPath'],
+          options['screenshotNavbarPath'],
           '-gravity',
           'south',
           '-composite',

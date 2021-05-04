@@ -72,7 +72,6 @@ class ImageProcessor {
           await overlayStatusbar(_config.stagingDir!, screenResources, screenshotPath.path);
 
           if (_config.isNavbarRequired(deviceName, orientation)) {
-            print('navbar required for $deviceName');
             // add nav bar for each screenshot
             await appendNavbar(_config.stagingDir!, screenResources, screenshotPath.path, deviceType);
           }
