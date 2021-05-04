@@ -44,6 +44,16 @@ class ImageMagick {
           options['screenshotPath'],
         ];
         break;
+      case 'ios-append':
+        cmdOptions = [
+          options['screenshotPath'],
+          options['screenshotNavbarPath'],
+          '-gravity',
+          'south',
+          '-composite',
+          options['screenshotPath'],
+        ];
+        break;
       case 'append':
         // convert -append screenshot_statusbar.png navbar.png final_screenshot.png
         cmdOptions = [
