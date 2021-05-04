@@ -71,9 +71,10 @@ class ImageProcessor {
           // add status bar for each screenshot
           await overlayStatusbar(_config.stagingDir!, screenResources, screenshotPath.path);
 
-          if (_config.isNavbarRequired(deviceName, orientation) && deviceType == DeviceType.android) {
+          if (_config.isNavbarRequired(deviceName, orientation)) {
+            print('navbar required for $deviceName');
             // add nav bar for each screenshot
-            await appendNavbar(_config.stagingDir!, screenResources, screenshotPath.path);
+            await appendNavbar(_config.stagingDir!, screenResources, screenshotPath.path, deviceType);
           }
         }
 
@@ -190,7 +191,8 @@ class ImageProcessor {
   }
 
   /// Append android navigation bar to screenshot.
-  static Future<void> appendNavbar(String tmpDir, Map screenResources, String screenshotPath) async {
+  static Future<void> appendNavbar(
+      String tmpDir, Map screenResources, String screenshotPath, DeviceType deviceType) async {
     // if no nav bar skip
     if (screenResources['navbar'] == null) {
       printStatus('error: image ${p.basename(screenshotPath)} is missing nav bar.');
@@ -211,7 +213,7 @@ class ImageProcessor {
       'screenshotPath': screenshotPath,
       'screenshotNavbarPath': navbarPath,
     };
-    await im.convert('append', options);
+    await im.convert(deviceType == DeviceType.ios ? 'ios-append' : 'append', options);
   }
 
   /// Frame a copy of the screenshot with image of device.
