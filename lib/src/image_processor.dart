@@ -18,7 +18,8 @@ class ImageProcessor {
   static const _kDefaultIosBackground = 'xc:white';
   @visibleForTesting // for now
   static const kDefaultAndroidBackground = 'xc:none'; // transparent
-  static const _kCrop = '1000x40+0+0'; // default sample size and location to test for brightness
+  static const _kCrop =
+      '1000x40+0+0'; // default sample size and location to test for brightness
 
   final Screens _screens;
   final Config _config;
@@ -69,11 +70,13 @@ class ImageProcessor {
         }
         for (final screenshotPath in screenshotPaths) {
           // add status bar for each screenshot
-          await overlayStatusbar(_config.stagingDir!, screenResources, screenshotPath.path);
+          await overlayStatusbar(
+              _config.stagingDir!, screenResources, screenshotPath.path);
 
           if (_config.isNavbarRequired(deviceName, orientation)) {
             // add nav bar for each screenshot
-            await appendNavbar(_config.stagingDir!, screenResources, screenshotPath.path, deviceType);
+            await appendNavbar(_config.stagingDir!, screenResources,
+                screenshotPath.path, deviceType);
           }
         }
 
@@ -82,7 +85,8 @@ class ImageProcessor {
 
         // frame screenshots
         for (final screenshotPath in screenshotPaths) {
-          await frame(_config.stagingDir!, screenProps, screenshotPath.path, deviceType, runMode);
+          await frame(_config.stagingDir!, screenProps, screenshotPath.path,
+              deviceType, runMode);
         }
 
         status?.stop();
@@ -93,10 +97,16 @@ class ImageProcessor {
 
     // move screenshots to final destination for upload to stores via fastlane
     if (screenshotPaths.isNotEmpty) {
-      final androidModelType = fastlane.getAndroidModelType(screenProps, deviceName);
-      var dstDir = fastlane.getDirPath(deviceType, locale, androidModelType, framed: true);
-      runMode == RunMode.recording ? dstDir = '${_config.recordingDir}/$dstDir' : null;
-      runMode == RunMode.archive ? dstDir = archive!.dstDir(deviceType, locale) : null;
+      final androidModelType =
+          fastlane.getAndroidModelType(screenProps, deviceName);
+      var dstDir = fastlane.getDirPath(deviceType, locale, androidModelType,
+          framed: true);
+      runMode == RunMode.recording
+          ? dstDir = '${_config.recordingDir}/$dstDir'
+          : null;
+      runMode == RunMode.archive
+          ? dstDir = archive!.dstDir(deviceType, locale)
+          : null;
       // prefix screenshots with name of device before moving
       // (useful for uploading to apple via fastlane)
       await utils.prefixFilesInDir(screenshotsDir,
@@ -107,8 +117,10 @@ class ImageProcessor {
 
       if (runMode == RunMode.comparison) {
         final recordingDir = '${_config.recordingDir}/$dstDir';
-        printStatus('Running comparison with recorded screenshots in $recordingDir ...');
-        final failedCompare = await compareImages(deviceName, recordingDir, dstDir);
+        printStatus(
+            'Running comparison with recorded screenshots in $recordingDir ...');
+        final failedCompare =
+            await compareImages(deviceName, recordingDir, dstDir);
         if (failedCompare.isNotEmpty) {
           showFailedCompare(failedCompare);
           throw 'Error: comparison failed.';
@@ -116,7 +128,8 @@ class ImageProcessor {
       }
 
       // move unframed screenshots to final destination
-      dstDir = fastlane.getDirPath(deviceType, locale, androidModelType, framed: false);
+      dstDir = fastlane.getDirPath(deviceType, locale, androidModelType,
+          framed: false);
       // prefix screenshots with name of device before moving
       await utils.prefixFilesInDir(unframedScreenshotsdir,
           '$deviceName-${orientation == null ? kDefaultOrientation : utils.getStringFromEnum(orientation)}-');
@@ -131,13 +144,15 @@ class ImageProcessor {
     printError('Comparison failed:');
 
     failedCompare.forEach((screenshotName, result) {
-      printError('${result['comparison']} is not equal to ${result['recording']}');
+      printError(
+          '${result['comparison']} is not equal to ${result['recording']}');
       printError('       Differences can be found in ${result['diff']}');
     });
   }
 
   @visibleForTesting
-  static Future<Map> compareImages(String deviceName, String recordingDir, String? comparisonDir) async {
+  static Future<Map> compareImages(
+      String deviceName, String recordingDir, String? comparisonDir) async {
     var failedCompare = <String, Map<String, String>>{};
     final recordedImages = fs.directory(recordingDir).listSync();
     fs
@@ -148,8 +163,10 @@ class ImageProcessor {
             !p.basename(screenshot.path).contains(ImageMagick.kDiffSuffix))
         .forEach((screenshot) {
       final screenshotName = p.basename(screenshot.path);
-      final recordedImageEntity = recordedImages.firstWhere((image) => p.basename(image.path) == screenshotName,
-          orElse: (() => throw 'Error: screenshot $screenshotName not found in $recordingDir'));
+      final recordedImageEntity = recordedImages.firstWhere(
+          (image) => p.basename(image.path) == screenshotName,
+          orElse: (() =>
+              throw 'Error: screenshot $screenshotName not found in $recordingDir'));
 
       if (!im.compare(screenshot.path, recordedImageEntity.path)) {
         failedCompare[screenshotName] = {
@@ -163,63 +180,71 @@ class ImageProcessor {
   }
 
   /// Overlay status bar over screenshot.
-  static Future<void> overlayStatusbar(String tmpDir, Map screenResources, String screenshotPath) async {
+  static Future<void> overlayStatusbar(
+      String tmpDir, Map screenResources, String screenshotPath) async {
     // if no status bar skip
     // todo: get missing status bars
     if (screenResources['statusbar'] == null) {
-      printStatus('error: image ${p.basename(screenshotPath)} is missing status bar.');
+      printStatus(
+          'error: image ${p.basename(screenshotPath)} is missing status bar.');
       return Future.value(null);
     }
 
     var statusbarPath = '$tmpDir/${screenResources['statusbar']}';
     // select black or white status bar based on brightness of area to be overlaid
     // todo: add black and white status bars
-    if (im.isThresholdExceeded(screenshotPath, _kCrop) && screenResources.containsKey('statusbar black')) {
+    if (im.isThresholdExceeded(screenshotPath, _kCrop) &&
+        screenResources.containsKey('statusbar black')) {
       // use black status bar
       statusbarPath = '$tmpDir/${screenResources['statusbar black']}';
-    } else if (!im.isThresholdExceeded(screenshotPath, _kCrop) && screenResources.containsKey('statusbar white')) {
+    } else if (!im.isThresholdExceeded(screenshotPath, _kCrop) &&
+        screenResources.containsKey('statusbar white')) {
       // use white status bar
       statusbarPath = '$tmpDir/${screenResources['statusbar white']}';
     }
 
-    final options = {
-      'screenshotPath': screenshotPath,
-      'statusbarPath': statusbarPath,
-    };
-    await im.convert('overlay', options);
+    im.overlay(
+      firstImagePath: screenshotPath,
+      secondImagePath: statusbarPath,
+      destinationPath: screenshotPath,
+    );
   }
 
   /// Append android navigation bar to screenshot.
-  static Future<void> appendNavbar(
-      String tmpDir, Map screenResources, String screenshotPath, DeviceType deviceType) async {
+  static Future<void> appendNavbar(String tmpDir, Map screenResources,
+      String screenshotPath, DeviceType deviceType) async {
     // if no nav bar skip
     if (screenResources['navbar'] == null) {
-      printStatus('error: image ${p.basename(screenshotPath)} is missing nav bar.');
+      printStatus(
+          'error: image ${p.basename(screenshotPath)} is missing nav bar.');
       return Future.value(null);
     }
 
     var navbarPath = '$tmpDir/${screenResources['navbar']}';
     // select black or white nav bar based on brightness of area to be overlaid
-    if (im.isThresholdExceeded(screenshotPath, _kCrop) && screenResources.containsKey('navbar black')) {
+    if (im.isThresholdExceeded(screenshotPath, _kCrop) &&
+        screenResources.containsKey('navbar black')) {
       // use black nav bar
       navbarPath = '$tmpDir/${screenResources['navbar black']}';
-    } else if (!im.isThresholdExceeded(screenshotPath, _kCrop) && screenResources.containsKey('navbar white')) {
+    } else if (!im.isThresholdExceeded(screenshotPath, _kCrop) &&
+        screenResources.containsKey('navbar white')) {
       // use white nav bar
       navbarPath = '$tmpDir/${screenResources['navbar white']}';
     }
 
-    final options = {
-      'screenshotPath': screenshotPath,
-      'screenshotNavbarPath': navbarPath,
-    };
-    await im.convert(deviceType == DeviceType.ios ? 'ios-append' : 'append', options);
+    im.append(
+      firstImagePath: screenshotPath,
+      secondImagePath: navbarPath,
+      destinationPath: screenshotPath,
+      ios: deviceType == DeviceType.ios,
+    );
   }
 
   /// Frame a copy of the screenshot with image of device.
   ///
   /// Resulting image is scaled to fit dimensions required by stores.
-  static Future<void> frame(
-      String tmpDir, Map screen, String screenshotPath, DeviceType deviceType, RunMode? runMode) async {
+  static Future<void> frame(String tmpDir, Map screen, String screenshotPath,
+      DeviceType deviceType, RunMode? runMode) async {
     final Map resources = screen['resources'];
 
     final framePath = tmpDir + '/' + resources['frame'];
@@ -233,14 +258,14 @@ class ImageProcessor {
         ? backgroundColor = _kDefaultIosBackground
         : backgroundColor = kDefaultAndroidBackground;
 
-    final options = {
-      'framePath': framePath,
-      'size': size,
-      'resize': resize,
-      'offset': offset,
-      'screenshotPath': screenshotPath,
-      'backgroundColor': backgroundColor,
-    };
-    await im.convert('frame', options);
+    im.frame(
+      imagePath: screenshotPath,
+      size: size,
+      backgroundColor: backgroundColor,
+      resize: resize,
+      offset: offset,
+      framePath: framePath,
+      destinationPath: screenshotPath,
+    );
   }
 }

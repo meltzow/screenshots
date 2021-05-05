@@ -31,79 +31,94 @@ class ImageMagick {
   ///
   /// ImageMagick calls.
   ///
-  Future convert(String command, Map options) async {
-    List<String?> cmdOptions;
-    switch (command) {
-      case 'overlay':
-        cmdOptions = [
-          options['screenshotPath'],
-          options['statusbarPath'],
-          '-gravity',
-          'north',
-          '-composite',
-          options['screenshotPath'],
-        ];
-        break;
-      case 'ios-append':
-        cmdOptions = [
-          options['screenshotPath'],
-          options['screenshotNavbarPath'],
+  void overlay({
+    required String firstImagePath,
+    required String secondImagePath,
+    required String destinationPath,
+  }) {
+    _imageMagickCmd(
+      'convert',
+      [
+        firstImagePath,
+        secondImagePath,
+        '-gravity',
+        'north',
+        '-composite',
+        destinationPath,
+      ],
+    );
+  }
+
+  void append({
+    required String firstImagePath,
+    required String secondImagePath,
+    required String destinationPath,
+    bool ios = false,
+  }) {
+    // convert -append screenshot_statusbar.png navbar.png final_screenshot.png
+    _imageMagickCmd(
+      'convert',
+      [
+        '-append',
+        firstImagePath,
+        secondImagePath,
+        if (ios) ...[
           '-gravity',
           'south',
           '-composite',
-          options['screenshotPath'],
-        ];
-        break;
-      case 'append':
-        // convert -append screenshot_statusbar.png navbar.png final_screenshot.png
-        cmdOptions = [
-          '-append',
-          options['screenshotPath'],
-          options['screenshotNavbarPath'],
-          options['screenshotPath'],
-        ];
-        break;
-      case 'frame':
-//  convert -size $size xc:skyblue \
+        ],
+        destinationPath,
+      ],
+    );
+  }
+
+  void frame({
+    required String imagePath,
+    required String size,
+    required String backgroundColor,
+    required String resize,
+    required String offset,
+    required String framePath,
+    required String destinationPath,
+  }) {
+    //  convert -size $size xc:skyblue \
 //   \( "$frameFile" -resize $resize \) -gravity center -composite \
 //   \( final_screenshot.png -resize $resize \) -gravity center -geometry -4-9 -composite \
 //   framed.png
-
-        cmdOptions = [
-          '-size',
-          options['size'],
-          options['backgroundColor'],
-          '(',
-          options['screenshotPath'],
-          '-resize',
-          options['resize'],
-          ')',
-          '-gravity',
-          'center',
-          '-geometry',
-          options['offset'],
-          '-composite',
-          '(',
-          options['framePath'],
-          '-resize',
-          options['resize'],
-          ')',
-          '-gravity',
-          'center',
-          '-composite',
-          options['screenshotPath']
-        ];
-        break;
-      default:
-        throw 'unknown command: $command';
-    }
-    _imageMagickCmd('convert', cmdOptions);
+    _imageMagickCmd(
+      'convert',
+      [
+        '-size',
+        size,
+        backgroundColor,
+        '(',
+        imagePath,
+        '-resize',
+        resize,
+        ')',
+        '-gravity',
+        'center',
+        '-geometry',
+        offset,
+        '-composite',
+        '(',
+        framePath,
+        '-resize',
+        resize,
+        ')',
+        '-gravity',
+        'center',
+        '-composite',
+        destinationPath,
+      ],
+    );
   }
 
   /// Checks if brightness of sample of image exceeds a threshold.
   /// Section is specified by [cropSizeOffset] which is of the form
   /// cropSizeOffset, eg, '1242x42+0+0'.
-  bool isThresholdExceeded(String imagePath, String cropSizeOffset, [double threshold = _kThreshold]) {
+  bool isThresholdExceeded(String imagePath, String cropSizeOffset,
+      [double threshold = _kThreshold]) {
     //convert logo.png -crop $crop_size$offset +repage -colorspace gray -format "%[fx:(mean>$threshold)?1:0]" info:
     final result = cmd(_getPlatformCmd('convert', <String>[
       imagePath,
@@ -123,7 +138,8 @@ class ImageMagick {
   bool compare(String comparisonImage, String recordedImage) {
     final diffImage = getDiffImagePath(comparisonImage);
 
-    var returnCode = _imageMagickCmd('compare', <String>['-metric', 'mae', recordedImage, comparisonImage, diffImage]);
+    var returnCode = _imageMagickCmd('compare',
+        <String>['-metric', 'mae', recordedImage, comparisonImage, diffImage]);
 
     if (returnCode == 0) {
       // delete no-diff diff image created by image magick
@@ -134,8 +150,11 @@ class ImageMagick {
 
   /// Append diff suffix [kDiffSuffix] to [imagePath].
   String getDiffImagePath(String imagePath) {
-    final diffName =
-        p.dirname(imagePath) + '/' + p.basenameWithoutExtension(imagePath) + kDiffSuffix + p.extension(imagePath);
+    final diffName = p.dirname(imagePath) +
+        '/' +
+        p.basenameWithoutExtension(imagePath) +
+        kDiffSuffix +
+        p.extension(imagePath);
     return diffName;
   }
 
@@ -143,7 +162,8 @@ class ImageMagick {
     fs
         .directory(dirPath)
         .listSync()
-        .where((fileSysEntity) => p.basename(fileSysEntity.path).contains(kDiffSuffix))
+        .where((fileSysEntity) =>
+            p.basename(fileSysEntity.path).contains(kDiffSuffix))
         .forEach((diffImage) => fs.file(diffImage.path).deleteSync());
   }
 
@@ -175,7 +195,10 @@ class ImageMagick {
 Future<bool> isImageMagicInstalled() async {
   try {
     return await runInContext<bool>(() {
-      return runCmd(platform.isWindows ? ['magick', '-version'] : ['convert', '-version']) == 0;
+      return runCmd(platform.isWindows
+              ? ['magick', '-version']
+              : ['convert', '-version']) ==
+          0;
     });
   } catch (e) {
     return false;
