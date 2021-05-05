@@ -15,7 +15,7 @@ import 'screens.dart';
 import 'utils.dart' as utils;
 
 class ImageProcessor {
-  static const _kDefaultIosBackground = 'xc:white';
+  static const _kDefaultIosBackground = 'xc:none';
   @visibleForTesting // for now
   static const kDefaultAndroidBackground = 'xc:none'; // transparent
   static const _kCrop =
