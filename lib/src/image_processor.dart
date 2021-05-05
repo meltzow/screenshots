@@ -202,12 +202,14 @@ class ImageProcessor {
     Map screen,
     String screenshotPath,
   ) {
-    final statusBarOffset = screen['background'];
-    if (statusBarOffset != null) {
+    final background = im.isThresholdExceeded(screenshotPath, _kCrop)
+        ? screen['background dark']
+        : screen['background light'];
+    if (background != null) {
       im.resizeWithCanvas(
         firstImagePath: screenshotPath,
         size: screen['size'],
-        backgroundColor: screen['background'],
+        backgroundColor: background,
         padding: screen['statusbar offset'],
         destinationPath: screenshotPath,
       );
