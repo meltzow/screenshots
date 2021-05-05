@@ -69,14 +69,28 @@ class ImageProcessor {
           printStatus('Warning: no screenshots found in $screenshotsDir');
         }
         for (final screenshotPath in screenshotPaths) {
+          // enforce correct size and add background if necessary
+          addBackgroundIfRequired(
+            screenProps,
+            screenshotPath.path,
+          );
+
           // add status bar for each screenshot
           await overlayStatusbar(
-              _config.stagingDir!, screenResources, screenshotPath.path);
+            _config.stagingDir!,
+            screenResources,
+            screenProps,
+            screenshotPath.path,
+          );
 
           if (_config.isNavbarRequired(deviceName, orientation)) {
             // add nav bar for each screenshot
-            await appendNavbar(_config.stagingDir!, screenResources,
-                screenshotPath.path, deviceType);
+            await overlayNavbar(
+              _config.stagingDir!,
+              screenResources,
+              screenshotPath.path,
+              deviceType,
+            );
           }
         }
 
@@ -85,8 +99,13 @@ class ImageProcessor {
 
         // frame screenshots
         for (final screenshotPath in screenshotPaths) {
-          await frame(_config.stagingDir!, screenProps, screenshotPath.path,
-              deviceType, runMode);
+          await frame(
+            _config.stagingDir!,
+            screenProps,
+            screenshotPath.path,
+            deviceType,
+            runMode,
+          );
         }
 
         status?.stop();
@@ -179,9 +198,29 @@ class ImageProcessor {
     return failedCompare;
   }
 
+  static void addBackgroundIfRequired(
+    Map screen,
+    String screenshotPath,
+  ) {
+    final statusBarOffset = screen['background'];
+    if (statusBarOffset != null) {
+      im.resizeWithCanvas(
+        firstImagePath: screenshotPath,
+        size: screen['size'],
+        backgroundColor: screen['background'],
+        padding: screen['statusbar offset'],
+        destinationPath: screenshotPath,
+      );
+    }
+  }
+
   /// Overlay status bar over screenshot.
   static Future<void> overlayStatusbar(
-      String tmpDir, Map screenResources, String screenshotPath) async {
+    String tmpDir,
+    Map screenResources,
+    Map screen,
+    String screenshotPath,
+  ) async {
     // if no status bar skip
     // todo: get missing status bars
     if (screenResources['statusbar'] == null) {
@@ -211,7 +250,7 @@ class ImageProcessor {
   }
 
   /// Append android navigation bar to screenshot.
-  static Future<void> appendNavbar(String tmpDir, Map screenResources,
+  static Future<void> overlayNavbar(String tmpDir, Map screenResources,
       String screenshotPath, DeviceType deviceType) async {
     // if no nav bar skip
     if (screenResources['navbar'] == null) {
@@ -232,11 +271,11 @@ class ImageProcessor {
       navbarPath = '$tmpDir/${screenResources['navbar white']}';
     }
 
-    im.append(
+    im.overlay(
       firstImagePath: screenshotPath,
       secondImagePath: navbarPath,
       destinationPath: screenshotPath,
-      ios: deviceType == DeviceType.ios,
+      gravity: 'south',
     );
   }
 

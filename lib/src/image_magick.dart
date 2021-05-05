@@ -31,10 +31,34 @@ class ImageMagick {
   ///
   /// ImageMagick calls.
   ///
+
+  void resizeWithCanvas({
+    required String firstImagePath,
+    required String size,
+    required String backgroundColor,
+    required String? padding,
+    required String destinationPath,
+  }) {
+    _imageMagickCmd(
+      'convert',
+      [
+        '-size',
+        size,
+        'canvas:$backgroundColor',
+        firstImagePath,
+        '-geometry',
+        '+0${padding ?? '+0'}',
+        '-composite',
+        destinationPath,
+      ],
+    );
+  }
+
   void overlay({
     required String firstImagePath,
     required String secondImagePath,
     required String destinationPath,
+    String gravity = 'north',
   }) {
     _imageMagickCmd(
       'convert',
@@ -42,7 +66,7 @@ class ImageMagick {
         firstImagePath,
         secondImagePath,
         '-gravity',
-        'north',
+        gravity,
         '-composite',
         destinationPath,
       ],
@@ -53,7 +77,6 @@ class ImageMagick {
     required String firstImagePath,
     required String secondImagePath,
     required String destinationPath,
-    bool ios = false,
   }) {
     // convert -append screenshot_statusbar.png navbar.png final_screenshot.png
     _imageMagickCmd(
@@ -62,11 +85,6 @@ class ImageMagick {
         '-append',
         firstImagePath,
         secondImagePath,
-        if (ios) ...[
-          '-gravity',
-          'south',
-          '-composite',
-        ],
         destinationPath,
       ],
     );

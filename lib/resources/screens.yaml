@@ -138,6 +138,7 @@ android:
       - Nexus 6P
   6.2inch:
     size: 1440x3200
+    background: '#202020'
     resize: 80%
     resources:
       statusbar: resources/android/1440/samsung_statusbar_white.png
@@ -148,11 +149,13 @@ android:
       navbar white: resources/android/1440/samsung_navbar_white.png
       frame: resources/android/phones/Samsung_Galaxy_S20.png
     offset: +8+6
+    statusbar offset: '+27'
     destName: phone
     devices:
       - Samsung Galaxy S20
   8.9inch:
     size: 1536x2048
+    background: '#202020'
     resize: 80%
     resources:
       statusbar: resources/android/1536/statusbar.png
