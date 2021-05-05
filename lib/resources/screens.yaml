@@ -99,6 +99,9 @@ ios:
     size: 2048x2732
     resize: 91.25%
     resources:
+      navbar: resources/ios/2048/navbar_black.png
+      navbar black: resources/ios/2048/navbar_black.png
+      navbar white: resources/ios/2048/navbar_white.png
       statusbar: resources/ios/2048/statusbar_white.png
       statusbar black: resources/ios/2048/statusbar_black.png
       statusbar white: resources/ios/2048/statusbar_white.png
