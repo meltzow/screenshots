@@ -28,13 +28,18 @@ Future screenshotDriver(final driver, Config config, String name,
   }
 }
 
-Future screenshot(IntegrationTestWidgetsFlutterBinding binding, WidgetTester tester, String name,
-    {bool silent = false}) async {
-  // This is required prior to taking the screenshot (Android only).
-  await binding.convertFlutterSurfaceToImage();
+Future screenshot(IntegrationTestWidgetsFlutterBinding binding, WidgetTester tester, String lang, String name,
+    {bool silent = true}) async {
+  if (Platform.isAndroid) {
+    // This is required prior to taking the screenshot (Android only).
+    await binding.convertFlutterSurfaceToImage();
+  }
 
   // Trigger a frame.
   await tester.pumpAndSettle();
-  await binding.takeScreenshot(name);
-  if (!silent) print('Screenshot $name created');
+
+  // Take screenshot
+  final screenshotName = '$lang/$name';
+  await binding.takeScreenshot(screenshotName);
+  if (!silent) print('Screenshot $screenshotName created');
 }
