@@ -48,7 +48,8 @@ Select the devices to run on using a convenient config file. _Screenshots_ will 
 _Screenshots_ runs tests on both iOS and Android in one run.  
 (as opposed to making separate Snapshots and Screengrab runs)
 1. One run for multiple locales  
-If app supports multiple locales, _Screenshots_ will optionally set the locales listed in the config file before running each test.
+Using the integration_test bindings, you can take screenshots for multiple languages and _Screenshots_ will process 
+   them.
 1. One run for frames  
 Optionally places images in device frames in same run.  
 (as opposed to making separate FrameIt runs... which supports iOS only)
@@ -156,13 +157,14 @@ To capture screenshots in tests:
        ````dart
        import 'package:screenshots/screenshots.dart';
        ````
-    2. Create the config at start of test  
+    2. Get the `IntegrationTestWidgetsFlutterBinding`
        ````dart
-            final config = Config();
+       final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized() as IntegrationTestWidgetsFlutterBinding;
        ````  
-    3. Throughout the test make calls to capture screenshots  
+    3. Once in each test, you can make a call to capture a screenshot (make sure `lang` is part of the locales in 
+       the config)
        ````dart
-           await screenshot(driver, config, 'myscreenshot1');
+           await screenshot(binding, tester, lang, name);
        ````
        
 Note: make sure screenshot names are unique across all tests.
@@ -178,17 +180,15 @@ _Screenshots_ uses a configuration file to configure a run.
 ````yaml
 # A list of screen capture tests
 tests:
-# Note: flutter driver expects a pair of files eg, main1.dart and main1_test.dart
-  - test_driver/main1.dart 
-  - test_driver/main2.dart 
+  - --target=screenshots/app_screenshot.dart --driver=screenshots/screenshot_driver.dart
 
 # Interim location of screenshots from tests
 staging: /tmp/screenshots
 
 # A list of locales supported by the app
 locales:
-  - en-US
-  - de-DE
+  - en
+  - de
 
 # A map of devices to emulate
 devices:
@@ -207,6 +207,29 @@ devices:
 
 # Frame screenshots
 frame: true
+````
+
+## Example Driver
+To specify the correct location where the screenshots should be saved, use this driver (in `screenshot_driver.dart`)
+````dart
+import 'dart:io';
+
+import 'package:integration_test/integration_test_driver_extended.dart';
+
+Future<void> main() async {
+  try {
+    await integrationDriver(
+      onScreenshot: (String screenshotName, List<int> screenshotBytes) async {
+        final image = await File('screenshots/res/screenshots/$screenshotName.png').create(recursive: true);
+        image.writeAsBytesSync(screenshotBytes);
+        // Return false if the screenshot is invalid.
+        return true;
+      },
+    );
+  } catch (e) {
+    print('Error occurred: $e');
+  }
+}
 ````
 
 ## Device Parameters
@@ -234,14 +257,6 @@ _orientation_ parameter notes:
 - landscape orientation disables framing  
   This is because status/navigation bars in landscape mode are currently not implemented.
 - orientation on iOS simulators is implemented using an AppleScript script which requires granting permission on first use.
-
-## Test Options
-In addition to using the default flutter driver mode, tests can also be specified using flutter driver parameters. For example:
-```
-tests:
-  - --target=test_driver/main1.dart --driver=test_driver/main1_test1.dart
-  - --target=test_driver/main2.dart --driver=test_driver/main2_test1.dart
-``` 
 
 # Record/Compare Mode
 _Screenshots_ can be used to monitor any unexpected changes to the UI by comparing the new screenshots to previously recorded screenshots. Any differences will be highlighted in a 'diff' image for review.  
