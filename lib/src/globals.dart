@@ -8,7 +8,7 @@ const String kEnvFileName = 'env.json';
 const kImageExtension = 'png';
 
 /// Directory for capturing screenshots during a test
-const kTestScreenshotsDir = 'test';
+const kTestScreenshotsDir = 'screenshots';
 
 /// Distinguish device OS.
 enum DeviceType { android, ios }

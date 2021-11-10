@@ -1,27 +1,20 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'config.dart';
-import 'globals.dart';
-
-/// Called by integration test to capture images.
-Future screenshot(final driver, Config config, String name,
-    {Duration timeout = const Duration(seconds: 30),
-    bool silent = false,
-    bool waitUntilNoTransientCallbacks = true}) async {
-  if (config.isScreenShotsAvailable) {
-    // todo: auto-naming scheme
-    if (waitUntilNoTransientCallbacks) {
-      await driver.waitUntilNoTransientCallbacks(timeout: timeout);
-    }
-
-    final pixels = await driver.screenshot();
-    final testDir = '${config.stagingDir}/$kTestScreenshotsDir';
-    final file =
-        await File('$testDir/$name.$kImageExtension').create(recursive: true);
-    await file.writeAsBytes(pixels);
-    if (!silent) print('Screenshot $name created');
-  } else {
-    if (!silent) print('Warning: screenshot $name not created');
+/// We cannot import integration_test or flutter_test because they lead to the following error: 'dart:ui' not found
+/// More info here: https://github.com/flutter/flutter/issues/27826
+/// Make sure to pass a IntegrationTestWidgetsFlutterBinding for `binding` and a WidgetTester for `tester`
+Future screenshot(dynamic binding, dynamic tester, String lang, String name, {bool silent = true}) async {
+  if (Platform.isAndroid) {
+    // This is required prior to taking the screenshot (Android only).
+    await binding.convertFlutterSurfaceToImage();
   }
+
+  // Trigger a frame.
+  await tester.pumpAndSettle();
+
+  // Take screenshot
+  final screenshotName = '$lang/$name';
+  await binding.takeScreenshot(screenshotName);
+  if (!silent) print('Screenshot $screenshotName created');
 }
