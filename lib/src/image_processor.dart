@@ -57,22 +57,22 @@ class ImageProcessor {
       if (screenProps == null) {
         printStatus('Warning: \'$deviceName\' images will not be processed');
       } else {
+        final Map screenResources = screenProps['resources'];
+        final status = logger?.startProgress(
+          'Processing screenshots from test...',
+          timeout: Duration(minutes: 4),
+        );
+
+        // unpack images for screen from package to local tmpDir area
+        await resources.unpackImages(screenResources, _config.stagingDir);
+
+        if (unframedScreenshotPaths.isEmpty) {
+          printStatus('Warning: no screenshots found in $unframedScreenshotsDir');
+        }
+
         // add frame if required
         if (_config.isFrameRequired(deviceName, orientation)) {
-          final Map screenResources = screenProps['resources'];
-          final status = logger?.startProgress(
-            'Processing screenshots from test...',
-            timeout: Duration(minutes: 4),
-          );
-
-          // unpack images for screen from package to local tmpDir area
-          await resources.unpackImages(screenResources, _config.stagingDir);
-
           // add status and nav bar for each screenshot
-          if (unframedScreenshotPaths.isEmpty) {
-            printStatus('Warning: no screenshots found in $unframedScreenshotsDir');
-          }
-
           for (final screenshotPath in unframedScreenshotPaths) {
             // enforce correct size and add background if necessary
             addBackgroundIfRequired(
@@ -116,7 +116,7 @@ class ImageProcessor {
 
           status?.stop();
         } else {
-          printStatus('Warning: framing is not enabled');
+          utils.copyFiles(unframedScreenshotsDir, framedScreenshotsDir);
         }
       }
 
