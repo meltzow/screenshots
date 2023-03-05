@@ -14,7 +14,7 @@ Future screenshot(dynamic binding, dynamic tester, String lang, String name, {bo
   await tester.pumpAndSettle();
 
   // Take screenshot
-  final screenshotName = '$lang/$name';
+  final screenshotName = '${lang.replaceAll('_', '-')}/$name';
   await binding.takeScreenshot(screenshotName);
   if (!silent) print('Screenshot $screenshotName created');
 }

@@ -40,23 +40,25 @@ class ImageProcessor {
   Future<bool> process(
     DeviceType deviceType,
     String deviceName,
+    String locale,
     Orientation? orientation,
     RunMode? runMode,
     Archive? archive,
   ) async {
     final screenProps = _screens.getScreen(deviceName);
-    for (final lang in _config.locales) {
-      final originalScreenshotsDir = '${_config.stagingDir}/$kTestScreenshotsDir/$lang';
-      final unframedScreenshotsDir = '${_config.stagingDir}/unframed/$lang';
-      final framedScreenshotsDir = '${_config.stagingDir}/framed/$lang';
+    final originalScreenshotsDir = '${_config.stagingDir}/$kTestScreenshotsDir/$locale';
+    final unframedScreenshotsDir = '${_config.stagingDir}/unframed/$locale';
+    final framedScreenshotsDir = '${_config.stagingDir}/framed/$locale';
 
-      // copy original screenshots before converting them
-      utils.copyFiles(originalScreenshotsDir, unframedScreenshotsDir);
+    // copy original screenshots before converting them
+    utils.copyFiles(originalScreenshotsDir, unframedScreenshotsDir);
 
-      final unframedScreenshotPaths = fs.directory(unframedScreenshotsDir).listSync();
-      if (screenProps == null) {
-        printStatus('Warning: \'$deviceName\' images will not be processed');
-      } else {
+    final unframedScreenshotPaths = fs.directory(unframedScreenshotsDir).listSync();
+    if (screenProps == null) {
+      printStatus('Warning: \'$deviceName\' images will not be processed');
+    } else {
+      // add frame if required
+      if (_config.isFrameRequired(deviceName, orientation)) {
         final Map screenResources = screenProps['resources'];
         final status = logger?.startProgress(
           'Processing screenshots from test...',
@@ -67,91 +69,87 @@ class ImageProcessor {
           printStatus('Warning: no screenshots found in $unframedScreenshotsDir');
         }
 
-        // add frame if required
-        if (_config.isFrameRequired(deviceName, orientation)) {
-          // add status and nav bar for each screenshot
-          // unpack images for screen from package to local tmpDir area
-          await resources.unpackImages(screenResources, _config.stagingDir);
+        // unpack images for screen from package to local tmpDir area
+        await resources.unpackImages(screenResources, _config.stagingDir);
 
-          for (final screenshotPath in unframedScreenshotPaths) {
-            // enforce correct size and add background if necessary
-            addBackgroundIfRequired(
-              screenProps,
-              screenshotPath.path,
-            );
+        for (final screenshotPath in unframedScreenshotPaths) {
+          // enforce correct size and add background if necessary
+          addBackgroundIfRequired(
+            screenProps,
+            screenshotPath.path,
+          );
 
-            // add status bar for each screenshot
-            await overlayStatusbar(
+          // add status bar for each screenshot
+          await overlayStatusbar(
+            _config.stagingDir!,
+            screenResources,
+            screenProps,
+            screenshotPath.path,
+          );
+
+          if (_config.isNavbarRequired(deviceName, orientation)) {
+            // add nav bar for each screenshot
+            await overlayNavbar(
               _config.stagingDir!,
               screenResources,
-              screenProps,
-              screenshotPath.path,
-            );
-
-            if (_config.isNavbarRequired(deviceName, orientation)) {
-              // add nav bar for each screenshot
-              await overlayNavbar(
-                _config.stagingDir!,
-                screenResources,
-                screenshotPath.path,
-                deviceType,
-              );
-            }
-          }
-
-          // copy unframed screenshots before framing them
-          utils.copyFiles(unframedScreenshotsDir, framedScreenshotsDir);
-
-          // frame screenshots
-          final framedScreenshotPaths = fs.directory(framedScreenshotsDir).listSync();
-          for (final screenshotPath in framedScreenshotPaths) {
-            await frame(
-              _config.stagingDir!,
-              screenProps,
               screenshotPath.path,
               deviceType,
-              runMode,
             );
           }
+        }
 
-          status?.stop();
-        } else {
-          utils.copyFiles(unframedScreenshotsDir, framedScreenshotsDir);
+        // copy unframed screenshots before framing them
+        utils.copyFiles(unframedScreenshotsDir, framedScreenshotsDir);
+
+        // frame screenshots
+        final framedScreenshotPaths = fs.directory(framedScreenshotsDir).listSync();
+        for (final screenshotPath in framedScreenshotPaths) {
+          await frame(
+            _config.stagingDir!,
+            screenProps,
+            screenshotPath.path,
+            deviceType,
+            runMode,
+          );
+        }
+
+        status?.stop();
+      } else {
+        utils.copyFiles(unframedScreenshotsDir, framedScreenshotsDir);
+      }
+    }
+
+    // move screenshots to final destination for upload to stores via fastlane
+    if (unframedScreenshotPaths.isNotEmpty) {
+      final androidModelType = fastlane.getAndroidModelType(screenProps, deviceName);
+      var dstDir = fastlane.getDirPath(deviceType, locale, androidModelType, framed: true);
+      runMode == RunMode.recording ? dstDir = '${_config.recordingDir}/$dstDir' : null;
+      runMode == RunMode.archive ? dstDir = archive!.dstDir(deviceType, locale) : null;
+      // prefix screenshots with name of device before moving
+      // (useful for uploading to apple via fastlane)
+      await utils.prefixFilesInDir(framedScreenshotsDir,
+          '$deviceName-${orientation == null ? kDefaultOrientation : utils.getStringFromEnum(orientation)}-');
+
+      printStatus('Moving framed screenshots to $dstDir');
+      utils.moveFiles(framedScreenshotsDir, dstDir);
+
+      if (runMode == RunMode.comparison) {
+        final recordingDir = '${_config.recordingDir}/$dstDir';
+        printStatus('Running comparison with recorded screenshots in $recordingDir ...');
+        final failedCompare = await compareImages(deviceName, recordingDir, dstDir);
+        if (failedCompare.isNotEmpty) {
+          showFailedCompare(failedCompare);
+          throw 'Error: comparison failed.';
         }
       }
 
-      // move screenshots to final destination for upload to stores via fastlane
-      if (unframedScreenshotPaths.isNotEmpty) {
-        final androidModelType = fastlane.getAndroidModelType(screenProps, deviceName);
-        var dstDir = fastlane.getDirPath(deviceType, lang, androidModelType, framed: true);
-        runMode == RunMode.recording ? dstDir = '${_config.recordingDir}/$dstDir' : null;
-        runMode == RunMode.archive ? dstDir = archive!.dstDir(deviceType, lang) : null;
-        // prefix screenshots with name of device before moving
-        // (useful for uploading to apple via fastlane)
-        await utils.prefixFilesInDir(framedScreenshotsDir,
-            '$deviceName-${orientation == null ? kDefaultOrientation : utils.getStringFromEnum(orientation)}-');
-
-        printStatus('Moving framed screenshots to $dstDir');
-        utils.moveFiles(framedScreenshotsDir, dstDir);
-
-        if (runMode == RunMode.comparison) {
-          final recordingDir = '${_config.recordingDir}/$dstDir';
-          printStatus('Running comparison with recorded screenshots in $recordingDir ...');
-          final failedCompare = await compareImages(deviceName, recordingDir, dstDir);
-          if (failedCompare.isNotEmpty) {
-            showFailedCompare(failedCompare);
-            throw 'Error: comparison failed.';
-          }
-        }
-
-        // move unframed screenshots to final destination
-        dstDir = fastlane.getDirPath(deviceType, lang, androidModelType, framed: false);
-        // prefix screenshots with name of device before moving
-        await utils.prefixFilesInDir(unframedScreenshotsDir,
-            '$deviceName-${orientation == null ? kDefaultOrientation : utils.getStringFromEnum(orientation)}-');
-        printStatus('Moving unframed screenshots to $dstDir');
-        utils.moveFiles(unframedScreenshotsDir, dstDir);
-      }
+      // move unframed screenshots to final destination
+      dstDir = fastlane.getDirPath(deviceType, locale, androidModelType, framed: false);
+      // prefix screenshots with name of device before moving
+      await utils.prefixFilesInDir(unframedScreenshotsDir,
+          '$deviceName-${orientation == null ? kDefaultOrientation : utils.getStringFromEnum(orientation)}-');
+      printStatus('Moving unframed screenshots to $dstDir');
+      utils.moveFiles(unframedScreenshotsDir, dstDir);
     }
     return true; // for testing
   }
