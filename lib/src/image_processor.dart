@@ -63,9 +63,6 @@ class ImageProcessor {
           timeout: Duration(minutes: 4),
         );
 
-        // unpack images for screen from package to local tmpDir area
-        await resources.unpackImages(screenResources, _config.stagingDir);
-
         if (unframedScreenshotPaths.isEmpty) {
           printStatus('Warning: no screenshots found in $unframedScreenshotsDir');
         }
@@ -73,6 +70,9 @@ class ImageProcessor {
         // add frame if required
         if (_config.isFrameRequired(deviceName, orientation)) {
           // add status and nav bar for each screenshot
+          // unpack images for screen from package to local tmpDir area
+          await resources.unpackImages(screenResources, _config.stagingDir);
+
           for (final screenshotPath in unframedScreenshotPaths) {
             // enforce correct size and add background if necessary
             addBackgroundIfRequired(
