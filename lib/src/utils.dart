@@ -345,7 +345,7 @@ DaemonEmulator? findEmulator(List<DaemonEmulator> emulators, String emulatorName
   emulators.sort(emulatorComparison);
   // todo: fix find for example 'Nexus_6_API_28' and Nexus_6P_API_28'
   return emulators.lastWhereOrNull(
-      (emulator) => emulator.id!.toUpperCase().contains(emulatorName.toUpperCase().replaceAll(' ', '_')));
+      (emulator) => emulator.id!.toUpperCase() == emulatorName.toUpperCase().replaceAll(' ', '_'));
 }
 
 int emulatorComparison(DaemonEmulator a, DaemonEmulator b) => a.id!.compareTo(b.id!);
