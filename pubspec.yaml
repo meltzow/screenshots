@@ -18,9 +18,9 @@ dependencies:
   platform: ^3.1.0
   process: ^4.2.4
   meta: ^1.8.0
-  intl: ^0.17.0
+  intl: ^0.18.0
   tool_mobile:
-    git: https://github.com/daniele-athome/tool_mobile.git
+    git: https://github.com/felixgabler/tool_mobile.git
 
 dev_dependencies:
   test: any
