@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert' as cnv;
-import 'dart:convert';
 import 'dart:io' as io;
 
 import 'package:collection/collection.dart';
@@ -26,9 +25,11 @@ void copyFiles(String srcDir, String? dstDir) {
   if (!fs.directory(dstDir).existsSync()) {
     fs.directory(dstDir).createSync(recursive: true);
   }
-  fs.directory(srcDir).listSync().forEach((file) {
-    io.File(file.path).copySync('$dstDir/${p.basename(file.path)}');
-  });
+  if (fs.directory(srcDir).existsSync()) {
+    fs.directory(srcDir).listSync().forEach((file) {
+      io.File(file.path).copySync('$dstDir/${p.basename(file.path)}');
+    });
+  }
 }
 
 /// Move files from [srcDir] to [dstDir].
