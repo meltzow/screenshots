@@ -140,7 +140,7 @@ Future prefixFilesInDir(String dirPath, String prefix) async {
   await for (final file
       in fs.directory(dirPath).list(recursive: false, followLinks: false)) {
     await file
-        .rename(p.dirname(file.path) + '/' + prefix + p.basename(file.path));
+        .rename(p.dirname(file.path) + '/' + p.basename(file.path) + prefix);
   }
 }
 
