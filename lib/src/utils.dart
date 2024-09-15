@@ -139,8 +139,11 @@ String getHighestIosVersion(Map iOSVersions) {
 Future prefixFilesInDir(String dirPath, String prefix) async {
   await for (final file
       in fs.directory(dirPath).list(recursive: false, followLinks: false)) {
-    await file
-        .rename(p.dirname(file.path) + '/' + p.basename(file.path) + prefix);
+    await file.rename(p.dirname(file.path) +
+        '/' +
+        p.basenameWithoutExtension(file.path) +
+        prefix +
+        p.extension(file.path));
   }
 }
 
